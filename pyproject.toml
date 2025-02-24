@@ -1,0 +1,38 @@
+[project]
+name = "pylot"
+version = "0.1.0"
+requires-python = ">=3.8"
+dependencies = [
+    "diskcache",
+    "einops",
+    "jc",
+    "more_itertools",
+    "numpy",
+    "s3fs",
+    "scikit-learn",
+    "stackprinter",
+    "tabulate",
+    "torch",
+    "torchvision",
+    "tqdm",
+    "pandas",
+    "ipywidgets",
+    "seaborn",
+    "plotly",
+    "kornia",
+    "pydantic",
+    "pyyaml",
+    "lmdbm",
+    "lz4",
+    "matplotlib",
+    "msgpack",
+    "msgpack_numpy",
+    "pillow",
+    "pyarrow",
+    "scipy",
+    "xxhash",
+    "zstd"
+]
+
+[tool.setuptools.packages.find]
+include = ["pylot*"]
