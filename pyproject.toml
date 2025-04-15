@@ -1,5 +1,5 @@
 [build-system]
-requires      = ["setuptools>=61.0.0", "wheel"]
+requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -75,3 +75,6 @@ Repository = "https://github.com/jjgo/pylot"
 
 [project.optional-dependencies]
 build = ["build", "setuptols", "twine"]
+
+[tool.setuptools.packages.find]
+include = ["pylot*"]
