@@ -31,7 +31,7 @@ dependencies = [
     "jc",
     "Jinja2",
     "kornia",
-#    "lmdbm",
+    "lmdbm",
      "lz4",
     "matplotlib",
 #    "more-itertools",
