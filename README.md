@@ -22,3 +22,65 @@ This library is designed as a supporting library to my other research efforts in
 - ✅ **Extensive Type Validation** - Type hints are included and _enforced_ thanks to pydantic.
 - 🐼 **Pandas Extensions** - Pandas DataFrame API is extended to better handle result dataframes, with methods such as `.select`, `.drop_constant`, `.unique_per_col`  or the `UnixAccessor` functionality.
 - 🏎️ **Designed for Speed** - From careful I/O considerations to CUDA optimizations, pylot is painstakingly designed with efficiency and speed in mind.
+
+# Quick Start Guide
+
+## 1 Define a `config.yml`
+Common top-level keys:
+- `experiment`: General experiment details
+- `log`: Details about logging, the path for base experiments, ...
+- `data`: Information about the dataset
+
+A simple configuration file might look like:
+
+```yaml
+experiment:
+  epochs: 100
+
+model:
+    _class: neurite.pytorch.models.BasicUNet
+    ndim: 2
+    in_channels: 1
+    out_channels: 32
+
+data:
+    _class: my.torch.Dataset
+    path_to_data: 'dalcalab/data'
+
+dataloader:
+    batch_size: 8
+    num_workers: 2
+    pin_memory: False
+
+log:
+    root: "path/to/experiments/directory"
+    checkpoint_freq: 1
+```
+
+## 2 Define an Experiment
+
+```bash
+from pylot.experiment.base import TrainExperiment
+
+class MyExperiment(TrainExperiment):
+    """
+    An experiment!
+    """
+
+    def run(self):
+        """
+        Run training loop and log metrics.
+        """
+        print('starting training loop...')
+
+        # Iterate epochs for training
+        for epoch in range(self.config.get('experiment.epochs', 10)):
+            # Train, val, log metrics...
+            pass
+```
+
+# Core Modules
+- `pylot.experiment`: Classes for running experiments and training models.
+- `pylot.metrics`: Basic ML and CV metrics (accuracy, Dice, ...).
+- `pylot.analysis`: Statistical analysis and summary functions.
+- `pylot.pandas`: Convert results to pandas DataFrames.
