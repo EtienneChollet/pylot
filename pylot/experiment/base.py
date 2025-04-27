@@ -26,7 +26,6 @@ __all__ = [
     'BaseExperiment',
 ]
 
-
 # Standard library imports
 import pathlib
 from abc import abstractmethod
@@ -35,10 +34,6 @@ from typing import Union
 # Third party imports 
 import yaml
 from loguru import logger
-
-from pylot.util.metrics import MetricsStore
-
-from pylot.util.metrics import MetricsStore
 
 # Local imports
 from .util import fix_seed, absolute_import, generate_tuid
@@ -235,7 +230,7 @@ class BaseExperiment:
         return cls(str(experiment_dir.absolute()))
 
     @property
-    def metrics(self) -> MetricsStore:
+    def metrics(self) -> MetricsDict:
         """
         Retrieve the current run's metrics dictionary from the experiment
         run's `metrics.jsonl`.
