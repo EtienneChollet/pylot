@@ -59,7 +59,7 @@ log:
 
 ## 2 Define an Experiment
 
-```bash
+```python
 from pylot.experiment.base import TrainExperiment
 
 class MyExperiment(TrainExperiment):
