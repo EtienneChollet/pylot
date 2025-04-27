@@ -43,8 +43,14 @@ def flatten(nested_dict, sep=None) -> Dict[Key, Any]:
                 flat_dict[(k,) + k2] = v2
         else:
             flat_dict[(k,)] = v
+
     if sep is not None:
-        flat_dict = keymap(lambda k: sep.join(k), flat_dict)
+        # Flatten and map bools to strings
+        flat_dict = {
+            sep.join(map(str, key_tuple)): val
+            for key_tuple, val in flat_dict.items()
+        }
+
     return flat_dict
 
 
