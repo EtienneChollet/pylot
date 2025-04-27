@@ -98,6 +98,12 @@ class TrainExperiment(BaseExperiment):
 
         Reads dataset configuration from the `data` field of `self.config`
         and initializes datasets for training and validation splits.
+
+        Notes
+        -----
+        If using this method off-the-shelf, the dataset specified by the `data`
+        key must accept `train` and `val` arguments in its constructor to
+        specify training and validation splits.
         """
 
         # Make sure config file has 'data' field
