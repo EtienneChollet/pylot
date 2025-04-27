@@ -5,11 +5,12 @@ import json
 import pathlib
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from fnmatch import fnmatch
-from typing import Optional, List
+from typing import Optional, List, Union
 
 import more_itertools
 import numpy as np
 from tqdm.auto import tqdm
+from loguru import logger
 
 import pandas as pd
 
@@ -53,67 +54,187 @@ def shorthand_columns(df):
 
 
 class ResultsLoader:
-    def __init__(self, cache_file: Optional[str] = None, num_workers: int = 8):
+    """
+    Loader utility for experimental results.
+
+    Attributes
+    ----------
+    _cache : FileCache
+        Cached file handler for fast repeated access.
+    _num_workers : int
+        Number of workers for parallel loading.
+    """
+
+    def __init__(
+        self,
+        cache_file: Optional[str] = None,
+        num_workers: int = 8
+    ):
+        """
+        Initialize `ResultsLoader`.
+
+        Parameters
+        ----------
+        cache_file : str or None, optional
+            Path to the disk cache file. If None, defaults to
+            "/tmp/{username}-results.diskcache".
+        num_workers : int, optional
+            Number of parallel workers for file loading.
+        """
+
+        # Determine the current user
         unixname = getpass.getuser()
-        cache_file = cache_file or f"/tmp/{unixname}-results.diskcache"
+        logger.info(
+            f'ResultsLoader is loading results for the unix user: {unixname}'
+        )
+
+        # Determine the 
+        if cache_file is None:
+            cache_file = f"/tmp/{unixname}-results.diskcache"
+            logger.debug(
+                'No results cache file specified to ResultsLoader constructor.'
+                f' Defaulting to cache file found at {cache_file}')
+
+        # Initialize disk cache and worker count
         self._cache = FileCache(cache_file)
         self._num_workers = num_workers
 
     def load_configs(
         self,
-        *paths,
-        shorthand=True,
-        properties=False,
-        metadata=False,
-        log=False,
-        callbacks=False,
-        categories=False,
-    ):
-        # ordered deduplication
-        paths = list(dict.fromkeys(paths))
-        assert all( isinstance(p, (str, pathlib.Path)) for p in paths)
+        *paths: Union[str, pathlib.Path],
+        shorthand: bool = True,
+        properties: bool = False,
+        metadata: bool = False,
+        log: bool = False,
+        callbacks: bool = False,
+        categories: bool = False,
+    ) -> pd.DataFrame:
+        """
+        Load and flatten a YAML configuration files from experiment folders.
 
+        This method loads the YAML configuration files associated with each
+        exoperimental run and flattens them so there is one entry per key.
+
+        Parameters
+        ----------
+        *paths : str or pathlib.Path
+            One or more base directories containing experiment run folders.
+        shorthand : bool, optional
+            Shorten verbose column names.
+        properties : bool, optional
+            Include `properties.json` contents as column.
+        metadata : bool, optional
+            Include `metadata.json` contents as column.
+        log : bool, optional
+            Keep or drop the `log` section in configs.
+        callbacks : bool, optional
+            Keep or drop the `callbacks` section.
+        categories : bool, optional
+            Convert string columns to pandas.Categorical.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Flattened configuration records, one row per experiment.
+
+        Examples
+        --------
+        >>> # Initialize the loader with the default cache file
+        >>> loader = pylot.ResultsLoader()
+        >>> # Specify directory to folder containing all pylot experiments
+        >>> experiment_root = 'pylot_experiments'
+        >>> # Load the flattened config files
+        >>> df = loader.load_configs(path)
+        >>> df.keys()
+        Index(['epochs', 'model', 'in_channels', 'out_channels', 'ndim'])
+        """
+
+        # Deduplicate input paths
+        paths = list(dict.fromkeys(paths))
+
+        for p in paths:
+            # Ensure all paths are valid
+            if not isinstance(p, (str, pathlib.Path)):
+
+                # Make error message
+                error_message = (
+                    f"Invalid experiment path: {p}: each entry must be a str "
+                    "or pathlib.Path"
+                )
+
+                # Throw errors
+                logger.error(error_message)
+                raise ValueError(error_message)
+
+        # Gather all immediate experiment subfolders
         folders = list(
             itertools.chain.from_iterable(
                 pathlib.Path(path).iterdir() for path in paths
             )
         )
 
+        # Load each config in parallel via cache
         configs = self._cache.gets(
-            (folder / "config.yml" for folder in folders), num_workers=self._num_workers
+            files=(folder / "config.yml" for folder in folders),
+            num_workers=self._num_workers
         )
 
         rows = []
-        for folder, cfg in tqdm(zip(folders, configs), leave=False, total=len(folders)):
+        for folder, cfg in tqdm(
+            zip(folders, configs),
+            leave=False,
+            total=len(folders)
+        ):
+
             if cfg is None:
-                continue
+                continue  # Skip missing configs
+
+            # Convert to nested dict with flatten suppport
             cfg = HDict(cfg)
+
+            # Optionally remove potential pollution
             if not log:
                 cfg.pop("log", None)
             if not callbacks:
                 cfg.pop("callbacks", None)
-            if metadata:
-                cfg.update({"metadata": self._cache[folder / "metadata.json"]})
-            if properties:
-                cfg.update({"properties": self._cache[folder / "properties.json"]})
 
+            # Optionally attach metadata and properties json data
+            if metadata:
+                cfg.update(
+                    {"metadata": self._cache[folder / "metadata.json"]}
+                )
+            if properties:
+                cfg.update(
+                    {"properties": self._cache[folder / "properties.json"]}
+                )
+
+            # Flatten dict, then convert to tuple (for hashability)
             flat_cfg = valmap(list2tuple, cfg.flatten())
+
+            # Add entries for the experimental run folders
             flat_cfg["path"] = folder
 
+            # Clean up key names from config conventions
             flat_cfg = keymap(lambda x: x.replace("._class", ""), flat_cfg)
             flat_cfg = keymap(lambda x: x.replace("._fn", ""), flat_cfg)
 
+            # Add to the container
             rows.append(flat_cfg)
 
+        # Build DataFrame from list of dicts
         df = pd.DataFrame.from_records(rows)
 
+        # Ensure hashability
         ensure_hashable(df, inplace=True)
 
+        # Optionally shorten column names
         if shorthand:
             df = shorthand_columns(df)
 
+        # Optionally convert to categorical for memory/analysis
         if categories:
             df = to_categories(df, inplace=True, threshold=0.5)
+
         return df
 
     def load_sub_configs(
@@ -147,62 +268,111 @@ class ResultsLoader:
         df = df_sub.merge(config_df[copy_cols], on="path", how="left")
 
         return df
-    
+
     def load_metrics(
         self,
-        config_df,
-        file="metrics.jsonl",
-        prefix="log",
-        shorthand=True,
-        copy_cols=None,
-        path_key=None,
-        expand_attrs=False,
-        categories=False,
+        config_df: pd.DataFrame,
+        file: Union[str, List[str]] = "metrics.jsonl",
+        prefix: str = "log",
+        shorthand: bool = True,
+        copy_cols: Optional[List[str]] = None,
+        path_key: Optional[str] = None,
+        expand_attrs: bool = False,
+        categories: bool = False,
     ):
-        assert isinstance(config_df, pd.DataFrame)
 
-        log_dfs = []
-        if path_key is None:
-            path_key = "path"
-        if copy_cols is None:
-            copy_cols = config_df.columns.to_list()
+        # Ensure config_df is a pandas dataframe
+        if not isinstance(config_df, pd.DataFrame):
 
+            # Make the error message
+            error_message = (
+                f'config_df must be a pandas dataframe. Got {type(config_df)}'
+            )
+
+            # Throw errors
+            logger.error(error_message)
+            raise TypeError(error_message)
+
+        # Determine the name of the column that holds the experiment path
+        path_key = path_key or 'path'
+
+        # Decide which config columns to replicate on each metric row
+        copy_cols = copy_cols or config_df.columns.to_list()
+
+        # Extract all experiment folder paths
         folders = config_df[path_key].values
 
+        # Normalize file argument into a list of filenames
         files = [file] if isinstance(file, str) else file
         n_files = len(files)
+        logger.debug(
+            f"Expecting {n_files} metric files per experiment: {files}"
+        )
+
+        # Read metric files in parallel using the cache
         all_files = self._cache.gets(
             (folder / file for folder in folders for file in files),
             num_workers=self._num_workers,
         )
-        config_iter = more_itertools.repeat_each(config_df.iterrows(), n_files)
-        assert len(all_files)>0, f"No files found for {file}"
 
+        if not len(all_files) > 0:
+            error_message = f"No metric files found for patterns {files}"
+            logger.error(error_message)
+            raise FileNotFoundError(error_message)
+
+        log_dfs = []
+
+        # Build an iterator that repeats each config row for each file
+        config_iter = more_itertools.repeat_each(config_df.iterrows(), n_files)
+
+        # Loop over each (config_row, log_df) pair
         for (_, row), log_df in tqdm(
-            zip(config_iter, all_files), total=len(config_df) * n_files, leave=False
+            zip(config_iter, all_files),
+            total=len(config_df) * n_files,
+            leave=False,
         ):
+
+            # Convert row -> dict and path -> pathlib.Path
             row = row.to_dict()
             path = pathlib.Path(row[path_key])
+
+            # Skip if this experiment has no metrics file
             if log_df is None:
+                logger.warning(f"Missing metrics file in {path}")
                 continue
+
+            # Prefix all metric column names (e.g. 'acc' -> 'log_acc')
             if prefix:
                 log_df.rename(
-                    columns={c: f"{prefix}_{c}" for c in log_df.columns}, inplace=True
+                    columns={c: f"{prefix}_{c}" for c in log_df.columns},
+                    inplace=True
                 )
+
+            # Copy metadata columns from config into each row of dataframe
             if len(copy_cols) > 0:
                 for col in copy_cols:
                     val = row[col]
+
+                    # If metadata is a tuple, repeat for each row as array
                     if isinstance(val, tuple):
-                        log_df[col] = np.array(itertools.repeat(val, len(log_df)))
+                        log_df[col] = np.array(
+                            itertools.repeat(val, len(log_df))
+                        )
                     else:
                         log_df[col] = val
+
+            # Optionally extract and attach additional attributes from metrics
             if expand_attrs:
                 log_df = augment_from_attrs(log_df, prefix=f"{prefix}_")
+
+            # Record the experiment path in the dataframe
             log_df["path"] = path
             log_dfs.append(log_df)
 
+        # Combine all experiment dataframe into one unified dataframe
         full_df = concat_with_attrs(log_dfs, ignore_index=True)
 
+        # Optionally simplify column names
         if shorthand:
             renames = {}
             for c in full_df.columns:
@@ -255,7 +425,12 @@ class ResultsLoader:
 
         return agg_df
 
-    def load_all(self, *paths, shorthand=True, **selector):
+    def load_all(
+        self,
+        *paths,
+        shorthand=True,
+        **selector
+    ):
 
         dfc = self.load_configs(*paths, shorthand=shorthand,).select(**selector).copy()
         df = self.load_metrics(dfc)
