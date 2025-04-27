@@ -62,6 +62,7 @@ __all__ = [
     "autohash",
     "inplace_edit",
     "is_jsonable",
+    "ensure_logging",
 ]
 
 
@@ -610,3 +611,34 @@ def is_jsonable(x):
         return True
     except (TypeError, OverflowError):
         return False
+
+
+def ensure_logging(
+    log_file_abspath: str = 'out.log',
+    level: str = 'INFO',
+) -> None:
+
+    pylot_logger_exists = False
+
+    for handler in logger._core.handlers.values():
+        sink = handler._sink
+        if isinstance(sink, FileSink):
+            if str(sink._path) == log_file_abspath:
+                logger.info(
+                    f'Logger sink already exists at {log_file_abspath}'
+                )
+
+                pylot_logger_exists = True
+                break
+    
+    if not pylot_logger_exists:
+        level = level.upper()
+        logger.add(
+            log_file_abspath,
+            level=level,
+            backtrace=True,
+            diagnose=True,
+        )
+        logger.info(
+            f'Logger sink initialized to {log_file_abspath}',
+        )
