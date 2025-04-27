@@ -1,11 +1,47 @@
-from abc import abstractmethod
+"""
+Base class and utilities for PyLot experiments.
 
+Classes
+-------
+BaseExperiment
+    Sets up experimental run, config loading, logging, metrics collection,
+    and callback management.
+
+Examples
+--------
+>>> # Define an experiment class with a concrete `run()` method.
+>>> class MyExp(BaseExperiment):
+...     def run(self):
+...         logger.info("Running MyExperiment")
+>>> # Make the configuration for it (can also be from an e.g. `.yml` file)
+>>> config = {'experiment': {'seed': 123}, 'log': {'root': './logs'}}
+>>> # Construct the experiment 
+>>> experiment = MyExperiment.from_config(config)
+>>> experiment.build_callbacks()
+>>> experiment.run()
+"""
+
+__all__ = [
+    'eval_callbacks',
+    'BaseExperiment',
+]
+
+
+# Standard library imports
 import pathlib
+from abc import abstractmethod
+from typing import Union
 
+# Third party imports 
 import yaml
+from loguru import logger
 
+from pylot.util.metrics import MetricsStore
+
+from pylot.util.metrics import MetricsStore
+
+# Local imports
 from .util import fix_seed, absolute_import, generate_tuid
-
 from ..util.metrics import MetricsDict
 from ..util.config import HDict, FHDict, ImmutableConfig, config_digest
 from ..util.ioutil import autosave
@@ -32,55 +68,196 @@ def eval_callbacks(all_callbacks, experiment):
 
 
 class BaseExperiment:
+    """
+    Base class for experiment setup and execution.
+
+    Attributes
+    ----------
+    path : pathlib.Path
+        Path to the directory containing the experiment run.
+    name : str
+        Name of the experiment, derived from the run directory stem.
+    config : ImmutableConfig
+        Configuration object loaded from `config.yml`.
+    properties : FHDict
+        Dictionary-like store for experiment properties saved to JSON.
+    metadata : FHDict
+        Dictionary-like store for metadata (creation time, digest).
+    metricsd : MetricsDict
+        Container for metric values, organized by name and group.
+    store : ThunderDict
+        Key-value store for intermediate or auxiliary data.
+    callbacks : dict
+        Mapping of callback groups to lists of initialized callbacks.
+    """
+
     def __init__(self, path: str):
         """
+        Initialize an experiment from an existing experiment directory.
+
+        Parameters
+        ----------
         path : str
-            Path to the configuration file (`.yml`) for the experiment.
+            Path to the experiment run directory containig a `config.yml`,
+            `metadata.json`, `properties.json`, etc... files.
         """
 
+        # Convert to pathlib if necessary
         if isinstance(path, str):
             path = pathlib.Path(path)
+
         self.path = path
-        assert path.exists()
+        logger.info(f'Absolute path to experiment run: "{self.path}"')
+
+        if not self.path.exists():
+            error_message = f'Path to experiment not found: "{self.path}"'
+            logger.error(error_message)
+            raise FileNotFoundError(error_message)
+
+        # Set derived instance attributes
         self.name = self.path.stem
 
-        
+        # Load the configuration file (defaults to 'config.yml')
         self.config = ImmutableConfig.from_file(path / "config.yml")
+
+        config_str = yaml.safe_dump(self.config._data, sort_keys=False)
+        logger.info(
+            f'Loaded config for experiment "{self.name}":\n{config_str}'
+        )
+
+        # Initialize stores
         self.properties = FHDict(self.path / "properties.json")
         self.metadata = FHDict(self.path / "metadata.json")
         self.metricsd = MetricsDict(self.path)
-
         self.store = ThunderDict(self.path / "store")
 
-        fix_seed(self.config.get("experiment.seed", 42))
+        # Set the global seed of the experiment for reproducibility
+        seed = self.config.get("experiment.seed", 42)
+        fix_seed(seed)
+        logger.info(f'Fixed global random seed to: {seed}')
+
+        # Check for optimized packages (e.g. numpy, scikit-learn, ...)
         check_environment()
 
+        # Record class & module for traceability. Useful for subclasses.
         self.properties["experiment.class"] = self.__class__.__name__
         self.properties["experiment.module"] = self.__class__.__module__
+        logger.debug("Recorded experiment class and module.")
 
+        # If additional log properties defined in config, update them
         if "log.properties" in self.config:
             self.properties.update(self.config["log.properties"])
+            logger.debug("Updated properties from config.log.properties.")
 
     @classmethod
-    def from_config(cls, config) -> "BaseExperiment":
+    def from_config(
+        cls,
+        config: Union[dict, HDict]
+    ) -> "BaseExperiment":
+        """
+        Create a new experiment directory from a configuration dictionary.
+
+        Parameters
+        ----------
+        config : dict or HDict
+            Collection of fields defining the configuration of an experiment.
+
+        Returns
+        -------
+        BaseExperiment
+            Experiment instance initialized within a new directory of the
+            current working directory.
+
+        Examples
+        --------
+        ### Defining a simple configuration file with a logging root
+        >>> config = {
+        ...     'experiment': {"seed": 99,},
+        ...     'log': {'root': 'my_experiment'}
+        ... }
+        >>> experiment = pylot.BaseExperiment.from_config(config)
+
+        Notes
+        -----
+        If the root directory for pylot experiments is not specified (by the
+        `log.root` key) in the config dict, experiment root defaults to
+        `pylot_experiments`.
+        """
+
+        # Convert HDict to dict if necessary
         if isinstance(config, HDict):
             config = config.to_dict()
 
-        root = pathlib.Path()
-        if "log" in config:
-            root = pathlib.Path(config["log"].get("root", "."))
-        create_time, nonce = generate_tuid()
-        digest = config_digest(config)
-        uuid = f"{create_time}-{nonce}-{digest}"
-        path = root / uuid
-        metadata = {"create_time": create_time, "nonce": nonce, "digest": digest}
-        autosave(metadata, path / "metadata.json")
+        # Make a default root for the experiment
+        default_experiment_root = 'pylot_experiments'
 
-        autosave(config, path / "config.yml")
-        return cls(str(path.absolute()))
+        # Make sure there's a valid root directory for the experiments
+        if "log" not in config:
+            # Set the root
+            config["log"] = {"root": default_experiment_root}
+
+        if "root" not in config["log"]:
+            config['log']['root'] = default_experiment_root
+
+        # Determine base folder for experiments        
+        experiments_root = pathlib.Path(config['log']['root'])
+
+        # Log the root path of the experiments
+        logger.info(
+            'Root directory for experiments located at: '
+            f'"{experiments_root}"'
+        )
+
+        # Generate names for unique identifier of experimental run
+        created_timestamp, random_suffix = generate_tuid()
+        digest = config_digest(config)
+
+        # Generate the (unique) name for the experiment run.
+        experiment_unique_id = f"{created_timestamp}-{random_suffix}-{digest}"
+        logger.info(
+            f'Made unique identifier for experiment: "{experiment_unique_id}"'
+        )
+
+        # Construct the path to the experiment run
+        experiment_dir = experiments_root / experiment_unique_id
+
+        # TODO: Determine wherelse `nonce` and `create_time` are used. Change.
+        metadata = {
+            "create_time": created_timestamp,
+            "nonce": random_suffix, 
+            "digest": digest
+        }
+
+        # TODO: document `autosave`
+        autosave(metadata, experiment_dir / "metadata.json")
+        autosave(config, experiment_dir / "config.yml")
+
+        return cls(str(experiment_dir.absolute()))
 
     @property
-    def metrics(self):
+    def metrics(self) -> MetricsStore:
+        """
+        Retrieve the current run's metrics dictionary from the experiment
+        run's `metrics.jsonl`.
+
+        Returns
+        -------
+        dict
+            Metrics dictionary containing logged metrics for the current
+            experiment run.
+
+        Examples
+        --------
+        >>> exp = BaseExperiment.from_config({'experiment': {'seed': 1}})
+        >>> metrics = exp.metrics  # initially empty dict
+
+        Notes
+        -----
+        The `data` attribute of self.metrics returns the metrics dictionary
+        """
+
+        logger.debug(f'Retrieving metrics for experiment: {self.name}')
+
         return self.metricsd["metrics"]
 
     def __hash__(self):
@@ -88,7 +265,29 @@ class BaseExperiment:
 
     @abstractmethod
     def run(self):
-        pass
+        """
+        Run the experiment.
+
+        This method should be overridden by subclasses (concrete classes) to
+        define training/evauluation routines.
+
+        Examples
+        --------
+        >>> class MyExp(BaseExperiment):
+        ...     def run(self):
+        ...         logger.info("Doing stuff, but also things!")
+        """
+
+        # Make the error message for logger and NotImplementedError
+        error_message = (
+            "BaseExperiment.run() called directly. This is an abstract method "
+            "that must be overridden in a subclass"
+        )
+
+        # Log the error
+        logger.error(error_message)
+
+        raise NotImplementedError(error_message)
 
     def __repr__(self):
         return f'{self.__class__.__name__}("{str(self.path)}")'
@@ -99,6 +298,40 @@ class BaseExperiment:
         return s
 
     def build_callbacks(self):
+        """
+        Instantiate and attach callbacks defined in the config.
+
+        Populates the `self.callbacks` dict with lists of callback
+        instances grouped by name.
+
+        Examples
+        --------
+        >>> exp = BaseExperiment.from_config({
+        ...     'experiment': {'seed': 5},
+        ...     'callbacks': {'train': ['module.CB']}
+        ... })
+        >>> exp.build_callbacks()
+        >>> 'train' in exp.callbacks
+        True
+        """
+        logger.info(
+            f"Building callbacks for experiment {self.name}"
+        )
+
+        # Initialize callbacks container
         self.callbacks = {}
+
         if "callbacks" in self.config:
+
+            # Get the callback group
             self.callbacks = eval_callbacks(self.config["callbacks"], self)
+
+            # Log the callback progress
+            logger.debug(
+                f'Attached callback groups: {list(self.callbacks.keys())}'
+            )
+
+        else:
+            logger.info(
+                f'No callbacks configured for experiment run {self.name}'
+            )
