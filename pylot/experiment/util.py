@@ -5,7 +5,8 @@ import random
 import time
 import importlib
 import pathlib
-from typing import Tuple, Dict
+import random
+from typing import Tuple, Dict, List
 
 from ..util.config import HDict, Config
 from ..util.ioutil import autoload
@@ -22,12 +23,52 @@ def fix_seed(seed):
     torch.manual_seed(seed)
 
 
+_ADJECTIVES: List[str] = [
+    "brisk", "calm", "damp", "eager", "faint", "glad", "huge", "icy",
+    "jolly", "keen", "loud", "mild", "neat", "odd", "pale", "quick",
+    "raw", "shy", "tidy", "vast", "warm", "young", "zany", "able",
+    "best", "cool", "dark", "easy", "fine", "good", "high", "just",
+    "kind", "lazy", "mean", "nice", "open", "pure", "rich", "soft",
+    "true", "wild", "zero", "blue", "fast", "grey", "long", "pink",
+    "red", "slow"
+]
+
+_NOUNS: List[str] = [
+    "apple", "beach", "cloud", "dream", "eagle", "flame", "glove",
+    "heart", "inlet", "jelly", "knife", "leaf", "mango", "night",
+    "ocean", "plant", "queen", "river", "stone", "tree", "unity",
+    "vapor", "whale", "xray", "yacht", "zebra", "bird", "cake",
+    "door", "echo", "frog", "gate", "hill", "ink", "jar", "kite",
+    "lamp", "moon", "nest", "owl", "pen", "quiz", "rose", "sun",
+    "top", "urn", "van", "web", "yak", "zip"
+]
+
+
+def generate_fun_name() -> str:
+    """
+    Generate a random run name composed of an adjective and a noun.
+
+    Returns
+    -------
+    str
+        A two-word name in the form "adjective-noun", randomly picked
+        from internal word lists. Each word is at most 5 characters.
+    """
+
+    adj = random.choice(_ADJECTIVES)
+    noun = random.choice(_NOUNS)
+    return f"{adj}-{noun}"
+
+
 def generate_tuid(nonce_length: int = 4) -> Tuple[str, int]:
-    rng = np.random.default_rng(time.time_ns())
+    """
+    Generate time-based unique ID for experiment run directories.
+    """
+
     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    char_options = list(string.ascii_uppercase + string.digits)
-    nonce = "".join(rng.choice(char_options, size=nonce_length))
-    return now, nonce
+    nonce = generate_fun_name()
+
+    return now, nonce.upper()
 
 
 def absolute_import(reference):
