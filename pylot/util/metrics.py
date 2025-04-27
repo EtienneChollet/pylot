@@ -16,9 +16,13 @@ class MetricsStore:
         self.path = path
 
     def log(self, *metrics: List[Dict[str, Any]]):
+
         with self.path.open("a") as f:
+
             for datapoint in metrics:
-                print(json.dumps(datapoint), file=f)
+                print(
+                    json.dumps(datapoint), file=f
+                )
 
     def log_df(self, df: pd.DataFrame):
         with self.path.open("a") as f:

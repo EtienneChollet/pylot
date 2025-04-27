@@ -9,22 +9,37 @@ from typing import Literal, Union
 import numpy as np
 from pydantic import validate_arguments
 from tabulate import tabulate
+from loguru import logger
 
 import torch
 import pandas as pd
 
 def PrintLogged(experiment):
+
     def PrintLoggedCallback(epoch):
-        print(f"Logged @ Epoch {epoch}", flush=True)
+
+        logger.info(f"Logged @ Epoch {epoch}", flush=True)
+
         df = experiment.metrics.df
+
         df = df[df.epoch == epoch].drop(columns=["epoch"])
+
         dfp = pd.pivot(
-            pd.melt(df, id_vars="phase", var_name="metric"),
+            pd.melt(
+                df,
+                id_vars="phase",
+                var_name="metric"
+            ),
             index="metric",
             columns="phase",
         )
+
         dfp.columns = [x[1] for x in dfp.columns]
-        print(tabulate(dfp, headers="keys"), flush=True)
+
+        # Log the metrics table.
+        logger.info(
+            f'\n{tabulate(dfp, headers="keys")}'
+        )
 
     return PrintLoggedCallback
 
@@ -37,13 +52,14 @@ def TerminateOnNaN(experiment, monitor="loss"):
         df = experiment.metrics.df
         for metric in monitor:
             if np.isnan(df[metric]).any():
-                print(
+                logger.error(
                     f"Encountered NaN value on {metric} at epoch {epoch}",
                     file=sys.stderr,
                 )
                 sys.exit(1)
+
             if np.isinf(df[metric]).any():
-                print(
+                logger.error(
                     f"Encountered Infinity value on {metric} at epoch {epoch}",
                     file=sys.stderr,
                 )
@@ -75,9 +91,12 @@ class ETA:
 
     def __call__(self, epoch):
         if epoch >= self.n_steps:
-            print("Done!")
+            logger.info("Done!")
+
             return
+
         self.timestamps[epoch] = time.time()
+
         if len(self.timestamps) % self.print_freq == 0:
             eta = self._least_squares_fit()
             time_per_epoch = self._time_per_epoch(epoch)
@@ -89,7 +108,11 @@ class ETA:
             remain = self.strfdelta(remain, "{hours:02d}:{minutes:02d}:{seconds:02d}")
             perepoch = self.strfdelta(time_per_epoch, "{hours:02d}:{minutes:02d}:{seconds:02d}.{milliseconds:03d}")
             N = self.n_steps
-            print(f"ETA ({epoch}/{N}): {eta:%Y-%m-%d %H:%M:%S} - {remain} remaining - {perepoch} per epoch")
+
+            logger.info(
+                f"ETA ({epoch}/{N}): {eta:%Y-%m-%d %H:%M:%S} - {remain} "
+                f"remaining - {perepoch} per epoch"
+            )
 
     def _time_per_epoch(self, epoch) -> timedelta:
         if epoch==0:
@@ -138,14 +161,12 @@ class ModelCheckpoint:
         monitor: str = "loss",
         mode: Literal["auto", "min", "max"] = "auto",
         phase: str = "val",
-        # save_top_k: int = 1,
         save_freq: int = 1,
     ):
 
         self.phase = phase
         self.experiment = experiment
         self.monitor = monitor
-        # self.save_top_k = save_top_k
         self.save_freq = save_freq
 
         min_patterns = ["*loss*", "*err*"]
@@ -194,7 +215,7 @@ class ModelCheckpoint:
             if not (self.experiment.path / "checkpoints").exists(): 
                 (self.experiment.path / "checkpoints").mkdir(parents=True, exist_ok=True)
             with (self.experiment.path / f"checkpoints/{tag}.pt").open("wb") as f:
-                print(f"Saving model with {tag}")
+                logger.info(f"Saving model with {tag}")
                 torch.save(self._best_state, f)
                 self._have_to_save = False
 

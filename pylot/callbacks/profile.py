@@ -2,6 +2,7 @@ import itertools
 import math
 
 from tabulate import tabulate
+from loguru import logger
 
 from ..util import printc
 from ..util.timer import StatsCUDATimer, StatsTimer
@@ -31,18 +32,25 @@ def Throughput(experiment, n_iter: int = 1_00, verbose: bool = True):
     timer_df = timer_df.set_index("label")
 
     if verbose:
-        print(tabulate(timer_df, headers="keys"), flush=True)
+        logger.info(
+            f'\n{tabulate(timer_df, headers="keys")}'
+        )
 
     t_dl = timer["train-dl"].mean
     t_gpu = timer["train-loop"].mean
     if t_dl > t_gpu and verbose:
-        printc(
-            f"Experiment is dataloader bound dl={t_dl:.2f}ms > gpu={t_gpu:.2f}ms",
-            color="RED",
+
+        logger.error(
+            f"Experiment is dataloader bound dl={t_dl:.2f}ms > "
+            f"gpu={t_gpu:.2f}ms",
         )
+
         recommended_num_workers = math.ceil(
             experiment.train_dl.num_workers * t_dl / t_gpu
         )
-        printc(f"Try setting num_workers={recommended_num_workers}", color="RED")
+
+        logger.error(
+            f"Try setting num_workers={recommended_num_workers}"
+        )
 
     return timer_df

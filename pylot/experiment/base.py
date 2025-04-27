@@ -32,13 +32,19 @@ def eval_callbacks(all_callbacks, experiment):
 
 
 class BaseExperiment:
-    def __init__(self, path):
+    def __init__(self, path: str):
+        """
+        path : str
+            Path to the configuration file (`.yml`) for the experiment.
+        """
+
         if isinstance(path, str):
             path = pathlib.Path(path)
         self.path = path
         assert path.exists()
         self.name = self.path.stem
 
+        
         self.config = ImmutableConfig.from_file(path / "config.yml")
         self.properties = FHDict(self.path / "properties.json")
         self.metadata = FHDict(self.path / "metadata.json")

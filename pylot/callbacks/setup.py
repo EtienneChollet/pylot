@@ -2,6 +2,7 @@ import json
 
 import pandas as pd
 from tabulate import tabulate
+from loguru import logger
 
 from ..util import S3Path
 from ..util.summary import summary
@@ -12,8 +13,11 @@ from ..metrics import module_table, parameter_table
 def ParameterTable(experiment, save=True, verbose=True):
 
     df = parameter_table(experiment.model)
+
     if verbose:
-        print(tabulate(df, headers="keys"))
+        logger.info(
+            f'\n{tabulate(df, headers="keys")}'
+        )
 
     if save:
         with (experiment.path / "params.csv").open("w") as f:
@@ -24,7 +28,9 @@ def ModuleTable(experiment, save=True, verbose=True):
 
     df = module_table(experiment.model)
     if verbose:
-        print(tabulate(df, headers="keys"))
+        logger.info(
+            f'\n{tabulate(df, headers="keys")}'
+        )
 
     if save:
         with (experiment.path / "modules.csv").open("w") as f:

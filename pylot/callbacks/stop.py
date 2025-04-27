@@ -2,6 +2,7 @@ import sys
 from typing import Literal, Optional
 from fnmatch import fnmatch
 
+from loguru import logger
 import numpy as np
 from pydantic import validate_arguments
 
@@ -53,9 +54,9 @@ class EarlyStopping:
         metrics = metrics[metrics.phase == self.phase]
 
         if self.check_finite and not np.isfinite(metrics[self.monitor]).all():
-            print(
-                f"Epoch {epoch}: Encountered non-finite value for {self.phase} {self.monitor}",
-                file=sys.stderr,
+            logger.error(
+                f"Epoch {epoch}: Encountered non-finite value for "
+                f"{self.phase} {self.monitor}",
             )
             sys.exit(0)
 
@@ -72,17 +73,19 @@ class EarlyStopping:
         cmp = {"max": np.greater, "min": np.less}[self.mode]
         # Non-recent is better than recent
         if cmp(fn(previous[quantity]), fn(recent[quantity])):
-            print(
-                f"Epoch {epoch}: {quantity} has not improved for {self.patience} epochs",
-                file=sys.stderr,
+            logger.error(
+                f"Epoch {epoch}: {quantity} has not improved for "
+                f"{self.patience} epochs",
             )
             sys.exit(0)
 
         if len(previous) > 0 and (
             abs(np.min(recent[quantity] - np.max(recent[quantity]))) <= self.min_delta
         ):
-            print(
-                f"Epoch {epoch}: {quantity} has improved less than {self.min_delta} in the last {self.patience} epochs",
+            logger.error(
+                f"Epoch {epoch}: {quantity} has improved less than "
+                f"{self.min_delta} in the last {self.patience} epochs",
                 file=sys.stderr,
             )
+
             sys.exit(0)

@@ -16,6 +16,7 @@ import torch
 import wandb
 from torch import nn
 from torch.utils.data import DataLoader
+from loguru import logger
 
 from ..nn.util import num_params, split_param_groups_by_weight_decay
 from ..util.ioutil import autosave
@@ -178,7 +179,7 @@ class TrainExperiment(BaseExperiment):
             optim_cfg["params"] = split_param_groups_by_weight_decay(
                 self.model, optim_cfg["weight_decay"]
             )
-    
+
         else:
             optim_cfg["params"] = self.model.parameters()
 
@@ -225,7 +226,7 @@ class TrainExperiment(BaseExperiment):
                 state.pop("optim", None)
             strict = init_cfg.get("strict", True)
             self.set_state(state, strict=strict)
-            print(f"Loaded initialization state from: {path}")
+            logger.info(f"Loaded initialization state from: {path}")
 
     @property
     def state(self):
@@ -256,7 +257,7 @@ class TrainExperiment(BaseExperiment):
         checkpoint_dir.mkdir(exist_ok=True)
 
         tag = tag if tag is not None else "last"
-        print(f"Checkpointing with tag:{tag} at epoch:{self._epoch}")
+        logger.info(f"Checkpointing with tag:{tag} at epoch:{self._epoch}")
 
         with (checkpoint_dir / f"{tag}.pt").open("wb") as f:
             torch.save(self.state, f)
@@ -273,11 +274,18 @@ class TrainExperiment(BaseExperiment):
         checkpoint_dir = self.path / "checkpoints"
         tag = tag if tag is not None else "last"
         with (checkpoint_dir / f"{tag}.pt").open("rb") as f:
-            state = torch.load(f, map_location=self.device)
+            state = torch.load(
+                f=f,
+                weights_only=True,
+                map_location=self.device
+            )
+
             self.set_state(state)
-        print(
-            f"Loaded checkpoint with tag:{tag}. Last epoch:{self.properties['epoch']}"
-        )
+            logger.info(
+                f"Loaded checkpoint with tag:{tag}. "
+                f"Last epoch:{self.properties['epoch']}"
+            )
+
         return self
 
     def to_device(self):
@@ -290,7 +298,7 @@ class TrainExperiment(BaseExperiment):
             callback(**kwargs)
 
     def run(self):
-        print(f"Running {str(self)}")
+        logger.info(f"Running {str(self)}")
         epochs: int = self.config["train.epochs"]
         self.to_device()
         self.build_dataloader()
@@ -314,7 +322,7 @@ class TrainExperiment(BaseExperiment):
 
         for epoch in range(last_epoch + 1, epochs):
 
-            print(f"Start epoch {epoch}")
+            logger.info(f"Start epoch {epoch}")
 
             self._epoch = epoch
             self.run_phase("train", epoch)
@@ -373,7 +381,9 @@ class TrainExperiment(BaseExperiment):
             }
 
         if self.config.get('wandb.track_it', False):
-            wandb.log(wandb_metrics, step=epoch)
+            logger.info('LOGGING TO WANDB')
+            logger.info(f"\n{wandb_metrics}")
+            wandb.log(wandb_metrics)
     
         self.metrics.log(metrics)
 
@@ -406,4 +416,3 @@ class TrainExperiment(BaseExperiment):
 
     def build_augmentations(self):
         pass
-
