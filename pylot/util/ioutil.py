@@ -21,11 +21,48 @@ import scipy.io
 import xxhash
 import yaml
 import zstd
+from loguru import logger
+from loguru._logger import FileSink
 
 import pandas as pd
 import torch
 
 m.patch()
+
+__all__ = [
+    "FileExtensionError",
+    "FileFormat",
+    "NpyFormat",
+    "NpzFormat",
+    "PtFormat",
+    "YamlFormat",
+    "NumpyJSONEncoder",
+    "JsonFormat",
+    "JsonlFormat",
+    "CsvFormat",
+    "ParquetFormat",
+    "FeatherFormat",
+    "PickleFormat",
+    "BaseImageFormat",
+    "JPGFormat",
+    "PNGFormat",
+    "GzipFormat",
+    "LZ4Format",
+    "ZstdFormat",
+    "MsgpackFormat",
+    "PlaintextFormat",
+    "MatFormat",
+    "InvalidExtensionError",
+    "autoencode",
+    "autodecode",
+    "autoload",
+    "autosave",
+    "autopackb",
+    "autounpackb",
+    "autohash",
+    "inplace_edit",
+    "is_jsonable",
+]
 
 
 class FileExtensionError(Exception):
@@ -501,7 +538,9 @@ def autoload(path: Union[str, pathlib.Path]) -> object:
     if isinstance(path, str):
         path = pathlib.Path(path)
     if not path.exists():
-        raise FileNotFoundError(f"No such file {str(path)}")
+        error_message = f"Experiment not found in {path}"
+        logger.error(error_message)
+        raise FileNotFoundError(error_message)
 
     ext = path.suffix.strip(".")
     if ext not in _DEFAULTFORMAT:
