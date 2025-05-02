@@ -1,5 +1,6 @@
 import gzip
 import io
+import sys
 import json
 import pathlib
 import pickle
@@ -552,15 +553,70 @@ def autoload(path: Union[str, pathlib.Path]) -> object:
 
 
 def autosave(obj, path: Union[str, pathlib.Path], parents=True) -> object:
+    """
+    Save an object to disk.
+
+    This function writes various Python objects (e.g., dicts, lists, np arrays,
+    pd DataFrames, torch.Tensors, etc.) to the specified `path` by
+    automatically selecting the appropriate serialization format based on the
+    file extension. It ensures parent directories exist (if `parents=True`),
+    supports compression for extensions like `.gz`, `.lz4`, and delegates the
+    actual write operation to format handlers registered in `_DEFAULTFORMAT`.
+
+    Parameters
+    ----------
+    obj : any
+        The Python object to save. Supported types include dicts, lists,
+        np arrays, pd DataFrames, torch.Tensors, etc.
+    path : str or pathlib.Path
+        Destination file path. The suffix (after the final dot) determines the
+        format (must be a key in `_DEFAULTFORMAT`, e.g., 'json', 'yml', 'pt',
+        'npy').
+    parents : bool, optional
+        If True, create parent directories before writing. Default is True
+
+    Examples
+    --------
+    >>> # Example 1: Save a Python dictionary as JSON:
+    >>> from pylot.util.ioutil import autosave
+    >>> config = {'lr': 0.001, 'batch_size': 16}
+    >>> autosave(config, 'experiments/run01/config.json')  # creates file
+
+    >>> # Example 2: Save a pandas DataFrame as CSV:
+    >>> import pandas as pd
+    >>> df = pd.DataFrame({'epoch': [1, 2], 'loss': [0.5, 0.4]})
+    >>> autosave(df, 'experiments/run01/metrics.csv')  # creates file
+
+    >>> # Example 3: Save a torch tensor with compression:
+    >>> import torch
+    >>> tensor = torch.randn(3, 3)
+    >>> autosave(tensor, 'experiments/run01/tensor.pt.lz4')  # LZ4-compressed
+    """
+
+    # Normalize path to pathlib.Path object
     if isinstance(path, str):
         path = pathlib.Path(path)
+
+    # Check if extension is supported
     ext = path.suffix.strip(".")
     if ext not in _DEFAULTFORMAT:
+        
+        msg = (
+            f'Extension {ext} is not supported for autosaving. Unable to save'
+            f'{path}'
+        )
+
+        logger.error(msg)
         raise InvalidExtensionError(ext)
+
+    # Make parent folders if requested
     if parents:
         path.parent.mkdir(exist_ok=True, parents=True)
+
+    # Encode compressed formats into bytes
     if ext.lower() in ("lz4", "zst", "gz"):
         obj = autoencode(obj, path.stem)
+
     return _DEFAULTFORMAT[ext].save(obj, path)
 
 
@@ -615,30 +671,53 @@ def is_jsonable(x):
 
 def ensure_logging(
     log_file_abspath: str = 'out.log',
-    level: str = 'INFO',
+    level: str = 'CRITICAL',
 ) -> None:
+    """
+    Parameters
+    ----------
+    log_file_abspath : str
+        Path to the logging file.
+    level : str
+        Level of debugging. Options are:
+        {TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL, `None`}. If set to None,
+        no logging takes place.
+    """
 
-    pylot_logger_exists = False
+    if level is not None:
+        pylot_logger_exists = False
 
-    for handler in logger._core.handlers.values():
-        sink = handler._sink
-        if isinstance(sink, FileSink):
-            if str(sink._path) == log_file_abspath:
-                logger.info(
-                    f'Logger sink already exists at {log_file_abspath}'
-                )
+        for handler in logger._core.handlers.values():
+            sink = handler._sink
+            if isinstance(sink, FileSink):
+                if str(sink._path) == log_file_abspath:
+                    logger.info(
+                        f'Logger sink already exists at {log_file_abspath}'
+                    )
 
-                pylot_logger_exists = True
-                break
-    
-    if not pylot_logger_exists:
-        level = level.upper()
-        logger.add(
-            log_file_abspath,
-            level=level,
-            backtrace=True,
-            diagnose=True,
-        )
-        logger.info(
-            f'Logger sink initialized to {log_file_abspath}',
-        )
+                    pylot_logger_exists = True
+                    break
+        
+        if not pylot_logger_exists:
+            level = level.upper()
+
+            try:
+                logger.remove(0)
+            except:
+                pass
+
+            # Add back stderr at INFO or higher
+            logger.add(sys.stderr, level="INFO")
+
+            logger.add(
+                log_file_abspath,
+                level=level,
+                backtrace=True,
+                diagnose=True,
+            )
+
+            logger.info(
+                f'Logger sink initialized to {log_file_abspath}',
+            )
+
+            logger.critical(f'Logging level: {level}')
