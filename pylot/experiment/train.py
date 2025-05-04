@@ -12,6 +12,7 @@ import copy
 import pathlib
 from typing import List
 
+from tqdm import tqdm
 import torch
 import wandb
 from torch import nn
@@ -24,6 +25,10 @@ from ..util.meter import MeterDict
 from ..util.torchutils import to_device
 from .base import BaseExperiment
 from .util import absolute_import, eval_config
+
+
+import torch
+from torch.utils.data import DataLoader
 
 
 class TrainExperiment(BaseExperiment):
@@ -53,7 +58,7 @@ class TrainExperiment(BaseExperiment):
     optim : torch.optim
     """
 
-    def __init__(self, path):
+    def __init__(self, path, *args, **kwargs):
         """
         Initialize experiment.
 
@@ -77,7 +82,7 @@ class TrainExperiment(BaseExperiment):
         torch.backends.cudnn.benchmark = True
 
         # Initialize parent `BaseExperiment`
-        super().__init__(path)
+        super().__init__(path, *args, **kwargs)
 
         # Set cuda if available
         self.device = torch.device(
@@ -147,8 +152,8 @@ class TrainExperiment(BaseExperiment):
         assert self.config["dataloader.batch_size"] <= len(
             self.train_dataset
         ), (
-        f'Batch size = {self.config["dataloader.batch_size"]} should not be '
-        f'larger than dataset (len = {len(self.train_dataset)})'
+            f'Batch size = {self.config["dataloader.batch_size"]} should not be '
+            f'larger than dataset (len = {len(self.train_dataset)})'
         )
 
         # Set the validation dataloader attribute
@@ -279,6 +284,7 @@ class TrainExperiment(BaseExperiment):
     def load(self, tag=None):
         checkpoint_dir = self.path / "checkpoints"
         tag = tag if tag is not None else "last"
+
         with (checkpoint_dir / f"{tag}.pt").open("rb") as f:
             state = torch.load(
                 f=f,
@@ -287,16 +293,20 @@ class TrainExperiment(BaseExperiment):
             )
 
             self.set_state(state)
-            logger.info(
-                f"Loaded checkpoint with tag:{tag}. "
-                f"Last epoch:{self.properties['epoch']}"
-            )
+
+        logger.info(
+            f"Loaded checkpoint with tag:{tag}. "
+            f"Last epoch:{self.properties['epoch']}"
+        )
 
         return self
 
     def to_device(self):
         self.model = to_device(
-            self.model, self.device, self.config.get("train.channels_last", False)
+            self.model, self.device, self.config.get(
+                "train.channels_last",
+                False
+            )
         )
 
     def run_callbacks(self, callback_group, **kwargs):
@@ -358,8 +368,14 @@ class TrainExperiment(BaseExperiment):
         meters = MeterDict()
 
         with torch.set_grad_enabled(grad_enabled):
+
+            if __debug__:
+                iterator = tqdm(enumerate(dl), total=len(dl), desc=phase)
+            else:
+                iterator = enumerate(dl)
+ 
             # with torch.inference_mode(not grad_enabled):
-            for batch_idx, batch in enumerate(dl):
+            for batch_idx, batch in iterator:
                 outputs = self.run_step(
                     batch_idx,
                     batch,
@@ -387,7 +403,6 @@ class TrainExperiment(BaseExperiment):
             }
 
         if self.config.get('wandb.track_it', False):
-            logger.info('LOGGING TO WANDB')
             logger.info(f"\n{wandb_metrics}")
             wandb.log(wandb_metrics)
     
