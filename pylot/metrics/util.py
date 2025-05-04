@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Literal, Optional, Tuple, Union
 
 import einops as E
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 import torch
 import torch.nn.functional as F
@@ -21,7 +21,7 @@ def hard_max(x: Tensor):
     return F.one_hot(torch.argmax(x, dim=1), num_classes=x.shape[1]).permute(order)
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def _infer_mode(y_pred: Tensor, y_true: Tensor,) -> InputMode:
     batch_size, num_classes = y_pred.shape[:2]
 
@@ -31,7 +31,7 @@ def _infer_mode(y_pred: Tensor, y_true: Tensor,) -> InputMode:
         return "multiclass"
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def _inputs_as_onehot(
     y_pred: Tensor,
     y_true: Tensor,
@@ -86,7 +86,7 @@ def _inputs_as_onehot(
     return y_pred.float(), y_true.float()
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def _inputs_as_longlabels(
     y_pred: Tensor,
     y_true: Tensor,
@@ -128,7 +128,7 @@ def _inputs_as_longlabels(
     return y_pred, y_true.long()
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def _metric_reduction(
     loss: Tensor,
     reduction: Reduction = "mean",

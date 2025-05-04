@@ -1,7 +1,7 @@
 import pathlib
 from typing import List
 
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 from torch.utils.data import Dataset
 
@@ -9,7 +9,7 @@ from ..util import ThunderLoader, ThunderReader, UniqueThunderReader
 
 
 class ThunderDataset(Dataset):
-    @validate_arguments
+    @validate_call
     def __init__(
         self, path: pathlib.Path, preload: bool = False, reuse_fp: bool = True
     ):

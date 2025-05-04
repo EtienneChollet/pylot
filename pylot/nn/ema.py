@@ -9,7 +9,7 @@ import copy
 import math
 from typing import Optional
 
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 import torch
 from torch import nn
@@ -34,7 +34,7 @@ class ModelEMA(nn.Module):
     GPU assignment and distributed training wrappers.
     """
 
-    @validate_arguments
+    @validate_call
     def __init__(
         self,
         model,
@@ -86,7 +86,7 @@ class ModelEMA(nn.Module):
 # Unlike ModelEMA which is intended for aside tracking, this is a full wrapper that uses EMA
 # in eval mode
 class EMAWrapper(nn.Module):
-    @validate_arguments
+    @validate_call
     def __init__(
         self,
         model,

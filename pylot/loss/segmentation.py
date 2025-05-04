@@ -3,7 +3,7 @@ from typing import Optional, Union, Literal
 import torch
 from torch import Tensor
 
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 from .util import _loss_module_from_func
 from ..util.more_functools import partial
@@ -11,7 +11,7 @@ from ..metrics.segmentation import soft_dice_score, soft_jaccard_score, pixel_ms
 from ..metrics.util import InputMode, Reduction
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def soft_dice_loss(
     y_pred: Tensor,
     y_true: Tensor,
@@ -49,7 +49,7 @@ def soft_dice_loss(
     return loss
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def soft_jaccard_loss(
     y_pred: Tensor,
     y_true: Tensor,

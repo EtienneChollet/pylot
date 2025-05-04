@@ -5,7 +5,7 @@ from typing import Dict, Iterable
 
 import lmdb
 from lmdbm import Lmdb
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 from pylot.util import autopackb, autounpackb
 
@@ -25,7 +25,7 @@ class ThunderDB(Lmdb):
 
 
 class ThunderDict(collections.abc.MutableMapping):
-    @validate_arguments
+    @validate_call
     def __init__(self, path: pathlib.Path):
         self.path = path
 
@@ -68,7 +68,7 @@ class ThunderDict(collections.abc.MutableMapping):
 
 
 class ThunderReader(collections.abc.Mapping):
-    @validate_arguments
+    @validate_call
     def __init__(self, path: pathlib.Path):
         self.path = path
         self._env = None
@@ -158,7 +158,7 @@ class ThunderLoader(collections.abc.Mapping):
 
     _loaded: Dict[pathlib.Path, "ThunderLoader"] = {}
 
-    @validate_arguments
+    @validate_call
     def __init__(self, path: pathlib.Path):
         self.path = path
         if path not in self._loaded:

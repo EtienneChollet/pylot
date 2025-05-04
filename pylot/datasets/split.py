@@ -1,10 +1,10 @@
 from typing import List, Tuple
 
-from pydantic import validate_arguments
+from pydantic import validate_call
 from sklearn.model_selection import train_test_split
 
 
-@validate_arguments
+@validate_call
 def data_splits(
     values: List[str], splits: Tuple[float, float, float], seed: int
 ) -> Tuple[List[str], List[str], List[str]]:

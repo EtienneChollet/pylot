@@ -1,7 +1,7 @@
 import copy
 import hashlib
 import json
-from pydantic import validate_arguments
+from pydantic import validate_call
 import pathlib
 import zlib
 import xxhash
@@ -39,7 +39,7 @@ def json_digest(data) -> str:
     return h
 
 
-@validate_arguments
+@validate_call
 def file_crc(path: pathlib.Path, chunksize=DEFAULT_CHUNKSIZE) -> str:
     crc = 0
     with open(path, "rb") as f:
@@ -52,7 +52,7 @@ def file_crc(path: pathlib.Path, chunksize=DEFAULT_CHUNKSIZE) -> str:
     return f"{crc:x}"
 
 
-@validate_arguments
+@validate_call
 def file_digest(path: pathlib.Path, chunksize=DEFAULT_CHUNKSIZE) -> str:
     # Use xxhash as it's substantially faster than md5
     # See https://github.com/Cyan4973/xxHash
@@ -66,7 +66,7 @@ def file_digest(path: pathlib.Path, chunksize=DEFAULT_CHUNKSIZE) -> str:
     return h.hexdigest()
 
 
-@validate_arguments
+@validate_call
 def fast_file_digest(path: pathlib.Path) -> str:
     import imohash
 

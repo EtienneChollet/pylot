@@ -2,7 +2,7 @@
 # https://github.com/ludvb/batchrenorm/blob/master/batchrenorm/batchrenorm.py
 # https://github.com/mf1024/Batch-Renormalization-PyTorch/blob/master/batch_renormalization.py
 import torch
-from pydantic import validate_arguments
+from pydantic import validate_call
 import einops as E
 
 
@@ -10,7 +10,7 @@ __all__ = ["BatchRenorm1d", "BatchRenorm2d", "BatchRenorm3d"]
 
 
 class BatchRenorm(torch.jit.ScriptModule):
-    @validate_arguments
+    @validate_call
     def __init__(
         self,
         num_features: int,

@@ -3,7 +3,7 @@ from typing import Optional, Union, List, Literal
 import torch
 from torch import Tensor
 import torch.nn.functional as F
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 
 from .util import (
@@ -15,7 +15,7 @@ from .util import (
 )
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def pixel_accuracy(
     y_pred: Tensor, y_true: Tensor, mode: InputMode = "auto", from_logits: bool = False,
 ) -> Tensor:
@@ -57,7 +57,7 @@ def pixel_mse(
     #     return F.mse_loss(y_pred, y_true, reduction=reduction)
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def soft_dice_score(
     y_pred: Tensor,
     y_true: Tensor,
@@ -93,7 +93,7 @@ def soft_dice_score(
     )
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def soft_jaccard_score(
     y_pred: Tensor,
     y_true: Tensor,
@@ -131,7 +131,7 @@ def soft_jaccard_score(
     )
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def dice_score(
     y_pred: Tensor,
     y_true: Tensor,
@@ -249,7 +249,7 @@ def IoU(
 
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def mIoU(
     y_pred: Tensor,
     y_true: Tensor,
@@ -272,7 +272,7 @@ def mIoU(
     return iou
 
 
-# @validate_arguments(config=dict(arbitrary_types_allowed=True))
+# @validate_call(config=dict(arbitrary_types_allowed=True))
 # def mIoU(
 #     y_pred: Tensor,
 #     y_true: Tensor,

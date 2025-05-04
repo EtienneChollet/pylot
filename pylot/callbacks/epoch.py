@@ -7,7 +7,7 @@ from fnmatch import fnmatch
 from typing import Literal, Union
 
 import numpy as np
-from pydantic import validate_arguments
+from pydantic import validate_call
 from tabulate import tabulate
 from loguru import logger
 
@@ -154,7 +154,7 @@ class ETA:
 
 
 class ModelCheckpoint:
-    @validate_arguments
+    @validate_call
     def __init__(
         self,
         experiment,

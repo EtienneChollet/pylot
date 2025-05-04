@@ -1,7 +1,7 @@
 import json
 from typing import Dict, List, Type, Union
 
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 JSONType = Type[
     Union[int, float, str, bool, None, Dict[str, "JSONType"], List["JSONType"]]
@@ -10,7 +10,7 @@ JSONType = Type[
 # This decorator is necessary because decorating directly
 # results in the class not being a valid type
 def validate_arguments_init(class_):
-    class_.__init__ = validate_arguments(class_.__init__)
+    class_.__init__ = validate_call(class_.__init__)
     return class_
 
 

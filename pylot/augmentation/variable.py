@@ -7,7 +7,7 @@ import kornia as K
 import kornia.augmentation as KA
 from kornia.constants import BorderType
 
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 from .common import AugmentationBase2D, _as_single_val, _as2tuple
 
@@ -56,7 +56,7 @@ class RandomBrightnessContrast(AugmentationBase2D):
 
 
 class FilterBase(AugmentationBase2D):
-    @validate_arguments
+    @validate_call
     def __init__(
         self,
         kernel_size: Union[int, Tuple[int, int]],

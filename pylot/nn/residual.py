@@ -1,10 +1,10 @@
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 from torch import nn
 
 
 class ConvResidual(nn.Module):
-    @validate_arguments
+    @validate_call
     def __init__(
         self, module, in_channels: int, out_channels: int,
     ):

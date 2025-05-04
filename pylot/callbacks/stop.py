@@ -4,11 +4,11 @@ from fnmatch import fnmatch
 
 from loguru import logger
 import numpy as np
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 
 class EarlyStopping:
-    @validate_arguments
+    @validate_call
     def __init__(
         self,
         experiment,

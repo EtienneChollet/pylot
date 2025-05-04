@@ -4,7 +4,7 @@ from concurrent.futures import ProcessPoolExecutor
 import torch
 import numpy as np
 from PIL import Image
-from pydantic import validate_arguments
+from pydantic import validate_call
 from sklearn.model_selection import train_test_split
 from torchvision.datasets import ImageFolder, MNIST
 
@@ -35,7 +35,7 @@ class notMNIST(MNIST):
 
     # loading code is a tad hacky to make the dataset MNIST-inherited
 
-    @validate_arguments
+    @validate_call
     def __init__(
         self,
         root: Path,

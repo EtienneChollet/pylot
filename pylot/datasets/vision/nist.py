@@ -7,7 +7,7 @@ from torchvision import transforms, datasets
 import torchvision.transforms as TF
 import torchvision.datasets as TD
 import PIL
-from pydantic import validate_arguments
+from pydantic import validate_call
 from sklearn.model_selection import train_test_split
 import numpy as np
 
@@ -99,7 +99,7 @@ def _fromVisionDataset(dataset_name):
     class_ = DATASET_CONSTRUCTOR[dataset_name]
 
     class DatasetWrapper(class_, DatapathMixin):
-        @validate_arguments
+        @validate_call
         def __init__(
             self,
             split: Literal["train", "val", "test"],
