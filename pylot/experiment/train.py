@@ -27,10 +27,6 @@ from .base import BaseExperiment
 from .util import absolute_import, eval_config
 
 
-import torch
-from torch.utils.data import DataLoader
-
-
 class TrainExperiment(BaseExperiment):
     """
     A training experiment to be subclassed for concrete implementations.
@@ -228,15 +224,66 @@ class TrainExperiment(BaseExperiment):
             self.metric_fns = eval_config(metrics_config)
 
     def build_initialization(self):
+        """
+        Load and apply an initialization state to the model from a file.
+
+        This method checks for an 'initialization' section in the configuration.
+        If present, it loads a serialized state dictionary from the specified
+        path and applies it to the model. The configuration may optionally skip
+        optimizer state loading and enforce strict key matching.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the initialization file does not exist.
+        RuntimeError
+            If `torch.load` fails or the state cannot be applied to the model.
+
+        Examples
+        --------
+        # Inside the class
+        >>> self.config = {
+        ...     "initialization": {
+        ...         "path": "checkpoint.pth",
+        ...         "optim": False,
+        ...         "strict": True
+        ...     }
+        ... }
+        >>> self.build_initialization()
+
+        Notes
+        -----
+        I am not sure how much this method is used??
+        """
+
+        # Check if 'initialization' is provided in the config dict
         if "initialization" in self.config:
+
+            # Convert the configuration to a dictionary for easy access
             init_cfg = self.config["initialization"].to_dict()
+
+            # Get the file path from the config and create a Path object
             path = pathlib.Path(init_cfg["path"])
+
+            # Open the checkpoint file and load the state using torch.load
             with path.open("rb") as f:
+
+                # Make sure it's on the right device!
                 state = torch.load(f, map_location=self.device)
+
+            # Optionally remove the optimizer state from the checkpoint?
             if not init_cfg.get("optim", True):
+                # (If we only want to initialize model weights)
                 state.pop("optim", None)
+
+            # Determine key-matching behavior If True, keys of state dict must
+            # match model perfectly
             strict = init_cfg.get("strict", True)
+
+            # Apply the loaded state to the model
             self.set_state(state, strict=strict)
+
+            # Log the successful initialization
             logger.info(f"Loaded initialization state from: {path}")
 
     @property
