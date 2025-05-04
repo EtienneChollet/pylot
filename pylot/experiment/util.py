@@ -30,7 +30,8 @@ _ADJECTIVES: List[str] = [
     "best", "cool", "dark", "easy", "fine", "good", "high", "just",
     "kind", "lazy", "mean", "nice", "open", "pure", "rich", "soft",
     "true", "wild", "zero", "blue", "fast", "grey", "long", "pink",
-    "red", "slow"
+    "red", "slow", "silly", "brave", "fiery", "chill", "fun", "smart",
+    "witty", "happy", "bad", "old", "mad", 
 ]
 
 _NOUNS: List[str] = [
@@ -40,7 +41,9 @@ _NOUNS: List[str] = [
     "vapor", "whale", "xray", "yacht", "zebra", "bird", "cake",
     "door", "echo", "frog", "gate", "hill", "ink", "jar", "kite",
     "lamp", "moon", "nest", "owl", "pen", "quiz", "rose", "sun",
-    "top", "urn", "van", "web", "yak", "zip"
+    "top", "urn", "van", "web", "yak", "zip", "boat", "button",
+    "camel", "latte", "data", "year", "blob", "thingy", "donut",
+    "taco", "rock", "wolf", "nerd", "lemon", "sloth", "cow", "elk"
 ]
 
 
@@ -88,6 +91,7 @@ def eval_config(config):
         return eval_config(config.to_dict())
     if isinstance(config, list):
         return [eval_config(v) for v in config]
+
     for k, v in config.items():
         if isinstance(v, (dict, list)):
             config[k] = eval_config(v)
