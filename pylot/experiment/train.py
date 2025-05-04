@@ -288,16 +288,79 @@ class TrainExperiment(BaseExperiment):
 
     @property
     def state(self):
+        """
+        The current state of the model, optimizer, and epoch number.
+
+        This property constructs and returns a dictionary representing the
+        current training state, including the model's state dict (its
+        parameters), the optimizer state dict, and the current epoch. It is
+        intended for use in checkpointing, saving, and restoring training
+        progress.
+
+        Returns
+        -------
+        dict
+            A dictionary describing the state of the experiment containing the
+            following keys:
+            - "model": the state dict of the model (`state_dict()`).
+            - "optim": the state dict of the optimizer (`state_dict()`).
+            - "_epoch": the current epoch value from `self.properties`.
+
+        Examples
+        --------
+        >>> state = trainer.state
+        >>> torch.save(state, "checkpoint.pt")
+        """
+
         return {
-            "model": self.model.state_dict(),
-            "optim": self.optim.state_dict(),
-            "_epoch": self.properties["epoch"],
+            "model": self.model.state_dict(),       # Serialized model weights
+            "optim": self.optim.state_dict(),       # Serialized optimizer
+            "_epoch": self.properties["epoch"],     # Last/current epoch
         }
 
-    def set_state(self, state, strict=True):
+    def set_state(
+        self,
+        state: dict,
+        strict: bool = True,
+    ):
+        """
+        Restore the model and optimizer state from a checkpoint dictionary.
+
+        This method updates the internal state of the model and optimizer
+        using the provided `state` dictionary (from a checkpoint). It supports
+        restoring `torch.nn.Module` and `torch.optim.Optimizer` objects by
+        calling their `load_state_dict` methods. The training epoch is
+        also updated from the checkpoint metadata.
+
+        Parameters
+        ----------
+        state : dict
+            A dictionary obtained from a checkpoint file. It must include the
+            following keys: {'model', 'optim', '_epoch'}.
+        strict : bool, optional
+            Whether to strictly enforce that the keys in the state dictionary
+            match the keys returned by the module’s `state_dict` function.
+            Default is True.
+
+        Examples
+        --------
+        >>> # Initialize an experiment (must be same as one saved to ckpt)
+        >>> experiment = MyCustomExperiment(*args, **kwargs)
+        >>> # Load the checkpoint
+        >>> checkpoint = torch.load("checkpoint.pt")
+        >>> # Load the state from the checkpoint into the experiment
+        >>> experiment.set_state(checkpoint, strict=False)
+        """
+
         for attr, state_dict in state.items():
+
+            # Skip metadata keys that start with underscore
             if not attr.startswith("_"):
+
+                # Get correct instance attr (e.g., self.model or self.optim)
                 x = getattr(self, attr)
+
+                # Restore model or optimizer state
                 if isinstance(x, nn.Module):
                     x.load_state_dict(state_dict, strict=strict)
                 elif isinstance(x, torch.optim.Optimizer):
@@ -305,20 +368,53 @@ class TrainExperiment(BaseExperiment):
                 else:
                     raise TypeError(f"Unsupported type {type(x)}")
 
+        # Restore epoch-related metadata
         self._checkpoint_epoch = state["_epoch"]
         self._epoch = state["_epoch"]
 
-    def checkpoint(self, tag=None):
+    def checkpoint(self, tag: str = 'last'):
+        """
+        Save the current state of the model to a checkpoint `.pt` file.
+
+        This method serializes the model's state to 3 main keys: {'model', 
+        'optim' and '_epoch'} representing the model state dict, the optimizer
+        state dict, and the current epoch number, respectively. The checkpoint
+        is written to the `checkpoints/` subdirectory of the experiment dir.
+        The filename is determined by an optional tag, defaulting to "last" if
+        not provided.
+
+        Parameters
+        ----------
+        tag : str, optional
+            A string label to use for naming the checkpoint file. If None,
+            the default name "last.pt" is used.
+
+        Raises
+        ------
+        OSError
+            If the checkpoint directory cannot be created or the file cannot be written.
+
+        Examples
+        --------
+        >>> # Set state of model to 5th epoch and save
+        >>> model._epoch = 5
+        >>> model.checkpoint("epoch_5")
+        # Saves to: {self.path}/checkpoints/epoch_5.pt
+        """
+
+        # Store the current epoch in the properties dictionary
         self.properties["epoch"] = self._epoch
 
+        # Define (and create) the checkpoint directory if it doesn't exist
         checkpoint_dir = self.path / "checkpoints"
         checkpoint_dir.mkdir(exist_ok=True)
 
-        tag = tag if tag is not None else "last"
-        logger.info(f"Checkpointing with tag:{tag} at epoch:{self._epoch}")
-
+        # Save the `state` property (with model, optim, and _epoch keys)
         with (checkpoint_dir / f"{tag}.pt").open("wb") as f:
             torch.save(self.state, f)
+
+        # Log the confirmation that the checkpoint has been saved
+        logger.info(f"Checkpointing with tag:{tag} at epoch:{self._epoch}")
 
     @property
     def checkpoints(self, as_paths=False) -> List[str]:
