@@ -424,10 +424,40 @@ class TrainExperiment(BaseExperiment):
             return checkpoints
         return [c.stem for c in checkpoints]
 
-    def load(self, tag=None):
-        checkpoint_dir = self.path / "checkpoints"
-        tag = tag if tag is not None else "last"
+    def load(self, tag: str = 'last'):
+        """
+        Load a checkpoint and restore the model, optimizer, and epoch state.
 
+        This method is used to resume training or begin evaluation from a saved
+        checkpoint. It has the following operations:
+           1. Build the path to the requested checkpoint.
+           2. Load the checkpoint dictionary from path with `torch.load()`.
+           3. Restore the model, optimizer, and epoch states from the
+           checkpoint dictionary using `self.set_state()`.
+
+        Parameters
+        ----------
+        tag : str, optional
+            A string identifier for the checkpoint file to load. Defaults
+            to 'last', which typically represents the most recent checkpoint.
+
+        Returns
+        -------
+        self : object
+            Returns the experiment instance.
+
+        Examples
+        --------
+        >>> # Load from the 10th epoch
+        >>> trainer.load("epoch_10")
+        >>> # OR resume from the last checkpoint
+        >>> trainer.load()
+        """
+
+        # Construct the path to the checkpoint directory
+        checkpoint_dir = self.path / "checkpoints"
+
+        # Open and load the checkpoint file
         with (checkpoint_dir / f"{tag}.pt").open("rb") as f:
             state = torch.load(
                 f=f,
@@ -435,8 +465,10 @@ class TrainExperiment(BaseExperiment):
                 map_location=self.device
             )
 
+            # Restore model, optimizer, and epoch from state
             self.set_state(state)
 
+        # Log the successful load
         logger.info(
             f"Loaded checkpoint with tag:{tag}. "
             f"Last epoch:{self.properties['epoch']}"
