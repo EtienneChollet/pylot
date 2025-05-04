@@ -5,7 +5,7 @@ import json
 import pathlib
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from fnmatch import fnmatch
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Dict, Tuple
 
 import more_itertools
 import numpy as np
@@ -18,7 +18,9 @@ import pandas as pd
 # on pd.DataFrames
 from ..pandas import api
 from ..pandas.api import augment_from_attrs
-from ..pandas.convenience import ensure_hashable, to_categories, concat_with_attrs
+from ..pandas.convenience import (
+    ensure_hashable, to_categories, concat_with_attrs, remove_redundant_columns
+)
 from ..util import FileCache
 from ..util.config import HDict, keymap, valmap
 
@@ -392,36 +394,127 @@ class ResultsLoader:
         return full_df
 
     def load_aggregate(
-        self, config_df, metric_df, agg=None, metrics_groupby=("phase",)
-    ):
-        assert isinstance(config_df, pd.DataFrame)
-        assert isinstance(metric_df, pd.DataFrame)
+        self,
+        config_df: pd.DataFrame,
+        metric_df: pd.DataFrame,
+        agg: Optional[Dict[str, List[str]]] = None,
+        metrics_groupby: Tuple[str, ...] = ("phase",),
+        remove_redundant_cols: bool = False,
+    ) -> pd.DataFrame:
+        """
+        Aggregate metric records by experiment config and optional group keys.
 
+        Parameters
+        ----------
+        config_df : pd.DataFrame
+            DataFrame containing experiment configurations.
+        metric_df : pd.DataFrame
+            DataFrame with metric records to aggregate.
+        agg : dict of {str: list of str}, optional
+            Additional mapping from metric columns to aggregation functions.
+        metrics_groupby : tuple of str, optional
+            Extra column names in metric_df to group by (in addition to all
+            columns of config_df).
+        remove_redundant_cols : bool, optional
+            Remove all columns that have a constant value for all entries.
+
+        Returns
+        -------
+        pd.DataFrame
+            Aggregated DataFrame whose columns are the config columns,
+            any extra group keys, and the aggregated metrics named
+            '<aggfunc>_<original_column>'.
+        """
+
+        # Validate inputs
+        if not isinstance(config_df, pd.DataFrame):
+            msg = f"config_df must be a DataFrame, got {type(config_df)}"
+            logger.error(msg)
+            raise TypeError(msg)
+
+        if not isinstance(metric_df, pd.DataFrame):
+            msg = f"metric_df must be a DataFrame, got {type(metric_df)}"
+            logger.error(msg)
+            raise TypeError(msg)
+
+        # Identify columns
         config_cols = list(config_df.columns)
         metric_cols = list(set(metric_df.columns) - set(config_df.columns))
 
+        logger.debug(f"Config columns for grouping: {config_cols}")
+        logger.debug(f"Metric columns to aggregate: {metric_cols}")
+
         _agg_fns = collections.defaultdict(list)
 
+        # Default patterns: max for accuracies/scores, min for losses/errors
         DEFAULT_AGGS = {
             "max": ["*acc*", "*score*", "*epoch*"],
             "min": ["*loss*", "*err*"],
         }
 
+        # Calculate the aggregation for each default
         for agg_fn, patterns in DEFAULT_AGGS.items():
+
             for column in metric_cols:
+                # If col name matches one of the patterns, schedule it for agg
                 if any(fnmatch(column, p) for p in patterns):
                     _agg_fns[column].append(agg_fn)
+
+        # Incorporate any user-requested extra aggregations
         if agg is not None:
+
             for column, agg_fns in agg.items():
+                # Do not overwrite defaults; extend the list of functions
                 _agg_fns[column].extend(agg)
 
-        g = config_cols + list(metrics_groupby)
-        agg_df = metric_df.groupby(g, as_index=False, dropna=False, observed=True).agg(
+        grouping_cols = config_cols + list(metrics_groupby)
+
+        # TODO: Figure out why I was getting this error
+        if 'log_freq' in grouping_cols:
+            grouping_cols.remove('log_freq')
+
+        # Verify that all grouping columns exist in metric_df
+        missing = [c for c in grouping_cols if c not in metric_df.columns]
+
+        if missing:
+            msg = f"Missing grouping columns in metric_df: {missing}"
+            logger.error(msg)
+            raise KeyError(msg)
+
+        logger.debug(
+            f'Aggregating metrics_df dataframe by {grouping_cols}'
+        )
+
+        # Group the dataframe and apply aggregations
+        agg_df = metric_df.groupby(
+            by=grouping_cols,
+            as_index=False,
+            dropna=False,
+            observed=True
+        ).agg(
             _agg_fns
         )
-        agg_df.columns = [
-            col if agg == "" else f"{agg}_{col}" for col, agg in agg_df.columns.values
-        ]
+
+        new_columns = []
+        for i, (col, agg) in enumerate(agg_df.columns.values):
+            if agg == "":
+                new_columns.append(col)
+            else:
+                new_columns.append(f"{agg}_{col}")
+
+        agg_df.columns = new_columns
+
+        # Relocate phase to be the first column
+        phase_series = agg_df.pop("phase")
+        agg_df.insert(0, "phase", phase_series)
+
+        # Derive the name of the experiment from the path and make first column
+        name_series = agg_df["path"].astype(str).str.split('/').str[-1]
+        agg_df.insert(0, "name", name_series)
+
+        # Optionally remove redundant columns
+        if remove_redundant_cols:
+            agg_df = remove_redundant_columns(agg_df)
 
         return agg_df
 
@@ -429,12 +522,26 @@ class ResultsLoader:
         self,
         *paths,
         shorthand=True,
+        remove_redundant_cols: bool = False,
         **selector
     ):
+        """
+        Returns
+        -------
+        Tuple[pd.DataFrame]
+            A tuple of the following dataframes:
+            - configuration dataframe
+            - metrics dataframe
+            - aggregate dataframe
+        """
 
         dfc = self.load_configs(*paths, shorthand=shorthand,).select(**selector).copy()
         df = self.load_metrics(dfc)
-        dfa = self.load_aggregate(dfc, df)
+        dfa = self.load_aggregate(
+            config_df=dfc,
+            metric_df=df,
+            remove_redundant_cols=remove_redundant_cols
+        )
         return dfc, df, dfa
 
     def load_from_callable(self, config_df, load_fn, copy_cols=None, prefix="data"):
