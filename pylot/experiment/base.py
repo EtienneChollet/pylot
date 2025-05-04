@@ -28,6 +28,8 @@ __all__ = [
 
 # Standard library imports
 import pathlib
+import inspect
+import functools
 from abc import abstractmethod
 from typing import Union
 
@@ -39,7 +41,7 @@ from loguru import logger
 from .util import fix_seed, absolute_import, generate_tuid
 from ..util.metrics import MetricsDict
 from ..util.config import HDict, FHDict, ImmutableConfig, config_digest
-from ..util.ioutil import autosave
+from ..util.ioutil import autosave, ensure_logging
 from ..util.libcheck import check_environment
 from ..util.thunder import ThunderDict
 
@@ -86,7 +88,11 @@ class BaseExperiment:
         Mapping of callback groups to lists of initialized callbacks.
     """
 
-    def __init__(self, path: str):
+    def __init__(
+        self,
+        path: str,
+        logging_level: str = 'debug',
+    ):
         """
         Initialize an experiment from an existing experiment directory.
 
@@ -102,6 +108,13 @@ class BaseExperiment:
             path = pathlib.Path(path)
 
         self.path = path
+
+        # Make sure logging is set up and make first log confirming experiment
+        ensure_logging(
+            log_file_abspath=self.path / 'output.log',
+            level=logging_level,
+        )
+
         logger.info(f'Absolute path to experiment run: "{self.path}"')
 
         if not self.path.exists():
@@ -116,9 +129,6 @@ class BaseExperiment:
         self.config = ImmutableConfig.from_file(path / "config.yml")
 
         config_str = yaml.safe_dump(self.config._data, sort_keys=False)
-        logger.info(
-            f'Loaded config for experiment "{self.name}":\n{config_str}'
-        )
 
         # Initialize stores
         self.properties = FHDict(self.path / "properties.json")
@@ -147,7 +157,8 @@ class BaseExperiment:
     @classmethod
     def from_config(
         cls,
-        config: Union[dict, HDict]
+        config: Union[dict, HDict],
+        logging_level: str = 'debug',
     ) -> "BaseExperiment":
         """
         Create a new experiment directory from a configuration dictionary.
@@ -179,12 +190,25 @@ class BaseExperiment:
         `pylot_experiments`.
         """
 
+        if isinstance(config, dict):
+            pass
+
         # Convert HDict to dict if necessary
-        if isinstance(config, HDict):
+        elif isinstance(config, HDict):
             config = config.to_dict()
+
+        elif isinstance(config, (str, pathlib.Path)):
+            config = ImmutableConfig.from_file(config).to_dict()
+
+        else:
+            logger.error(
+                'Do not know how to handle config with passed config of type '
+                f'{type(config)}'
+            )
 
         # Make a default root for the experiment
         default_experiment_root = 'pylot_experiments'
+        print('config: ', config)
 
         # Make sure there's a valid root directory for the experiments
         if "log" not in config:
@@ -208,7 +232,7 @@ class BaseExperiment:
         digest = config_digest(config)
 
         # Generate the (unique) name for the experiment run.
-        experiment_unique_id = f"{created_timestamp}-{random_suffix}-{digest}"
+        experiment_unique_id = f"{created_timestamp}-{random_suffix}"#-{digest}"
         logger.info(
             f'Made unique identifier for experiment: "{experiment_unique_id}"'
         )
@@ -227,7 +251,12 @@ class BaseExperiment:
         autosave(metadata, experiment_dir / "metadata.json")
         autosave(config, experiment_dir / "config.yml")
 
-        return cls(str(experiment_dir.absolute()))
+        class_instance = cls(
+            path=str(experiment_dir.absolute()),
+            logging_level=logging_level,
+        )
+
+        return class_instance
 
     @property
     def metrics(self) -> MetricsDict:
@@ -251,7 +280,8 @@ class BaseExperiment:
         The `data` attribute of self.metrics returns the metrics dictionary
         """
 
-        logger.debug(f'Retrieving metrics for experiment: {self.name}')
+        if __debug__:
+            logger.debug(f'Retrieving metrics for experiment: {self.name}')
 
         return self.metricsd["metrics"]
 
@@ -330,3 +360,43 @@ class BaseExperiment:
             logger.info(
                 f'No callbacks configured for experiment run {self.name}'
             )
+
+    def __init_subclass__(cls, **kwargs):
+        """
+        Automatically wrap public, callable methods of subclasses with
+        logger.catch so that exceptions are logged (and optionally
+        reraised). Methods can opt out by setting __no_catch__ on them.
+        """
+        super().__init_subclass__(**kwargs)
+
+        for name, attr in list(cls.__dict__.items()):
+            # Skip private, magic, non-callables, or explicit opt-outs
+            if name.startswith("_") or not callable(attr):
+                continue
+            if getattr(attr, "__no_catch__", False):
+                continue
+
+            # Unwrap staticmethod/classmethod to the raw function
+            if isinstance(attr, classmethod):
+                func = attr.__func__
+                wrapped = classmethod(
+                    logger.catch(reraise=True)(
+                        functools.wraps(func)(func)
+                    )
+                )
+            elif isinstance(attr, staticmethod):
+                func = attr.__func__
+                wrapped = staticmethod(
+                    logger.catch(reraise=True)(
+                        functools.wraps(func)(func)
+                    )
+                )
+            elif inspect.isfunction(attr):
+                wrapped = logger.catch(reraise=True)(
+                    functools.wraps(attr)(attr)
+                )
+            else:
+                # leave other callables (e.g. descriptors) alone
+                continue
+
+            setattr(cls, name, wrapped)
