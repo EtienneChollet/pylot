@@ -45,18 +45,18 @@ def check_environment():
     except ImportError:
         from warnings import warn
 
-    if not check_numpy_mkl():
-        warn("Intel MKL extensions not available for NumPy")
-    if not check_scipy_mkl():
-        warn("Intel MKL extensions not available for SciPy")
-    if not check_libjpeg_turbo():
-        warn("libjpeg_turbo not enabled for Pillow")
-    if not check_pillow_simd():
-        warn("Using slow Pillow instead of Pillow-SIMD")
-    if not check_torch_cuda():
-        warn("PyTorch cannot find a valid GPU device, check CUDA_VISIBLE_DEVICES")
-    if not check_torch_cudnn_benchmark():
-        warn("cuDNN autotuner not enabled, set  torch.backends.cudnn.benchmark = True")
+    #if not check_numpy_mkl():
+    #    warn("Intel MKL extensions not available for NumPy")
+    #if not check_scipy_mkl():
+    #    warn("Intel MKL extensions not available for SciPy")
+    #if not check_libjpeg_turbo():
+    #    warn("libjpeg_turbo not enabled for Pillow")
+    #if not check_pillow_simd():
+    #    warn("Using slow Pillow instead of Pillow-SIMD")
+    #if not check_torch_cuda():
+    #    warn("PyTorch cannot find a valid GPU device, check CUDA_VISIBLE_DEVICES")
+    #if not check_torch_cudnn_benchmark():
+    #    warn("cuDNN autotuner not enabled, set  torch.backends.cudnn.benchmark = True")
 
 
 if __name__ == "__main__":
