@@ -1,3 +1,15 @@
+
+__all__ = [
+    'groupby_mode_nonum',
+    'groupby_and_take_best',
+    'to_categories',
+    'ensure_hashable',
+    'broadcast_categories',
+    'set_value_to_column',
+    'concat_with_attrs',
+    'remove_redundant_columns'
+]
+
 import itertools
 import json
 import operator
@@ -123,3 +135,26 @@ def concat_with_attrs(dfs, **concat_kws):
     concat_df = pd.concat(dfs, **concat_kws)
     concat_df.attrs.update(unique_attrs)
     return concat_df
+
+
+def remove_redundant_columns(
+    dataframe: pd.DataFrame,
+):
+    """
+    Remove all columns that have the same values for all entires
+    """
+
+    # Get a series of the unique counts indexed by column name
+    unique_counts = dataframe.nunique()
+
+    # Get all the non-constant columns
+    varying = unique_counts > 1
+
+    # True for the 'path' col
+    always_keep = dataframe.columns == "path"     
+
+    # Keep mask is or
+    keep_mask = varying | always_keep
+    dataframe = dataframe.loc[:, keep_mask]
+
+    return dataframe
