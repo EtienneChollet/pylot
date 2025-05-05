@@ -154,18 +154,71 @@ def contains_nested(nested_dict, key, sep=None) -> bool:
 
 
 class HDict(MutableMapping):
-    # Hierarchical Dictionary
+    """
+    Hierarchical dictionary supporting dotted key paths for nested structures.
+
+    This class allows intuitive access to nested dictionaries using string keys
+    separated by a custom delimiter (default is '.'). It supports both
+    immutable and mutable dictionary operations and can serialize/deserialize
+    its content.
+
+    Attributes
+    ----------
+    _data : dict
+        Internal dictionary holding the nested data.
+    _sep : str
+        Separator used for composite keys.
+
+    Examples
+    --------
+    >>> h = HDict({'a.b': 1, 'a.c': 2})
+    >>> h['a.b']
+    1
+    >>> h['a']['c']
+    2
+    """
 
     def __init__(self, initial=None, *, _sep="."):
+        """
+        Initialize the `HDict`.
+
+        Parameters
+        ----------
+        initial : dict or HDict, optional
+            Initial data to populate the dictionary.
+        _sep : str, optional
+            Separator used for nested keys (default is ".").
+        """
+
+        # Store separator for nested key access
         self._sep = _sep
+
+        # Initialize the data store
         self._data = dict()
+
+        # Initialize with a deep nested structure if provided
         if initial is not None:
+
+            # Convert into normal dictionary
             if isinstance(initial, HDict):
                 initial = initial.to_dict()
+
+            # Convert flattened dict to nested structure
             initial = unflatten(initial, sep=self._sep)
+
+            # Override _data with the initialized content
             self._data = dict(initial)
 
     def __repr__(self):
+        """
+        Return the string representation of the HDict.
+
+        Returns
+        -------
+        str
+            String representation of the object.
+        """
+
         s = f"{self.__class__.__name__}({repr(self._data)}"
         if self._sep != ".":
             s += f", _sep={repr(self._sep)}"
@@ -173,9 +226,52 @@ class HDict(MutableMapping):
         return s
 
     def __contains__(self, key: Key) -> bool:
-        return contains_nested(self._data, key, sep=self._sep)
+        """
+        Check whether a key exists in the dictionary.
+
+        Parameters
+        ----------
+        key : str
+            Composite key to query
+
+        Returns
+        -------
+        bool
+            True if key exists, False otherwise.
+
+        Examples
+        --------
+        >>> 'a.b' in HDict({'a.b': 1})
+        True
+        """
+
+        return contains_nested(
+            nested_dict=self._data, key=key, sep=self._sep
+        )
 
     def __getitem__(self, key: Key):
+        """
+        Retrieve a value using a composite key with custom seperator.
+
+        Parameters
+        ----------
+        key : str
+            Composite key for nested access.
+
+        Returns
+        -------
+        object or HDict
+            Retrieved value; wrapped in HDict if it is a dict.
+
+        Examples
+        --------
+        >>> h = HDict({'x.y': 3})
+        >>> h['x.y']
+        3
+        >>> type(h['x'])
+        <class '__main__.HDict'>
+        """
+
         val = get_nested(self._data, key, sep=self._sep)
         if isinstance(val, dict):
             val = self.__class__(val, _sep=self._sep)
@@ -193,14 +289,6 @@ class HDict(MutableMapping):
 
     def __len__(self):
         return len(self._data)
-
-    # Methods are inherited from Mapping mixin
-    # def keys(self):
-    #     return self._data.keys()
-    # def items(self):
-    #     return self._data.items()
-    # def values(self):
-    #     return self._data.values()
 
     # Mutable methods
     def __setitem__(self, key: Key, value):
@@ -303,6 +391,34 @@ class Config(HDict):
 
 
 class ImmutableConfig(HDict):
+    """
+    An immutable configuration dictionary that computes a digest and
+    supports hashing, but disallows any modification operations.
+
+    This class inherits from `HDict` and overrides mutation methods
+    to raise an `ImmutableConfigError`, ensuring that instances
+    remain unchanged after creation.
+
+    Methods
+    -------
+    __hash__():
+        Returns the hash of the configuration based on its digest.
+    
+    digest():
+        Computes a hexadecimal digest of the internal data.
+    
+    __setitem__(key, value):
+        Disabled. Raises an ImmutableConfigError.
+    
+    __delitem__(key):
+        Disabled. Raises an ImmutableConfigError.
+    
+    pop(key):
+        Disabled. Raises an ImmutableConfigError.
+    
+    update(other):
+        Disabled. Raises an ImmutableConfigError.
+    """
     def __hash__(self):
         return hash(int(self.digest(), 16))
 
