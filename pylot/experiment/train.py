@@ -33,12 +33,25 @@ class TrainExperiment(BaseExperiment):
 
     Attributes
     ----------
-    config : dict
-        inherited from `BaseExperiment`.
-    properties : dict
-        inherited from `BaseExperiment`.
+    path : pathlib.Path
+        Absolute path to a particular experimental run.
+    name : str
+        Name of the particular experimental run in the format
+        `YYYYMMDD_HHMMSS-nonce-hash`
+    config : ImmutableConfig
+        Dictionary of the experiment's configuration that is not mutable.
+        Contains a configuration hash.
+    properties : HDict
+        Hierarchical dictionary (supporting dotted keys) containing the
+        properties of the experiment such as {epoch, num_params, ...}
     metadata : dict
         inherited from `BaseExperiment`.
+    metricsd : MetricsDict
+        Dictionary containig all the metrics.
+    store : ThunderDict
+        Not sure
+    callbacks : dict
+        Callbacks to run at ...
     train_dataset : torch.utils.data.Dataset
         Training dataset set by `build_data()` method.
     val_dataset : torch.utils.data.Dataset
@@ -52,6 +65,22 @@ class TrainExperiment(BaseExperiment):
     properties : dict
         Properties and metadata of `TrainExperiment`
     optim : torch.optim
+    state : dict
+        A dictionary containing `model` (the model state dict), `optim`
+        (the optimizer's state dict) and `_epoch` (the current epoch in
+        training, derived from the `properties` attribute)
+    checkpoints : list
+        A list of absolute paths to all checkpoints for an experimental run. 
+
+    Methods
+    -------
+    set_state(state, strict)
+        Restore the model and optimizer states from a checkpoint dictionary.
+    checkpoint(tag='last')
+        Save the current state of the model, optimizer, and epoch to a
+        checkpoint.
+    load(tag='last')
+        Load a checkpoint and restore the model, optimizer, and epoch states.
     """
 
     def __init__(self, path, *args, **kwargs):
