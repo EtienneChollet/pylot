@@ -71,11 +71,13 @@ class BaseExperiment:
     Attributes
     ----------
     path : pathlib.Path
-        Path to the directory containing the experiment run.
+        Absolute path to a particular experimental run.
     name : str
-        Name of the experiment, derived from the run directory stem.
+        Name of the particular experimental run in the format
+        `YYYYMMDD_HHMMSS-nonce-hash`
     config : ImmutableConfig
-        Configuration object loaded from `config.yml`.
+        Dictionary of the experiment's configurations that is not mutable.
+        Contains a configuration hash.
     properties : FHDict
         Dictionary-like store for experiment properties saved to JSON.
     metadata : FHDict
@@ -107,6 +109,7 @@ class BaseExperiment:
         if isinstance(path, str):
             path = pathlib.Path(path)
 
+        # Store the path as an attribute
         self.path = path
 
         # Make sure logging is set up and make first log confirming experiment
