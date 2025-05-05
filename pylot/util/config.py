@@ -277,33 +277,154 @@ class HDict(MutableMapping):
             val = self.__class__(val, _sep=self._sep)
         return val
 
-    # Composite methods
-    def get(self, key, default=None):
-        if key not in self:
-            return default
-        return self[key]
+    def __setitem__(self, key: Key, value):
+        """
+        Set a value using a composite key.
 
-    # Delegated methods
+        Parameters
+        ----------
+        key : str
+            Composite key where value will be placed.
+        value : object
+            Value to assign.
+
+        Examples
+        --------
+        >>> h = HDict()
+        >>> h['foo.bar'] = 10
+        >>> h['foo.bar']
+        10
+        """
+
+        return set_nested(
+            nested_dict=self._data,
+            key=key,
+            value=value,
+            sep=self._sep
+        )
+
+    def __delitem__(self, key: Key):
+        """
+        Delete an item using a composite key.
+
+        Parameters
+        ----------
+        key : str
+            Composite key to delete.
+
+        Examples
+        --------
+        >>> h = HDict({'x.y': 1})
+        >>> del h['x.y']
+        >>> 'x.y' in h
+        False
+        """
+
+        return del_nested(
+            nested_dict=self._data,
+            key=key,
+            sep=self._sep
+        )
+
     def __iter__(self):
+        """
+        Return an iterator over top-level keys.
+
+        Returns
+        -------
+        iterator
+            Iterator over keys.
+
+        Examples
+        --------
+        >>> list(HDict({'a': 1, 'b': 2}))
+        ['a', 'b']
+        """
+
         return iter(self._data)
 
     def __len__(self):
+        """
+        Return the number of top-level items.
+
+        Returns
+        -------
+        int
+            Number of items.
+
+        Examples
+        --------
+        >>> len(HDict({'a.b': 1, 'a.c': 2}))
+        1
+        """
+
         return len(self._data)
 
-    # Mutable methods
-    def __setitem__(self, key: Key, value):
-        return set_nested(self._data, key, value, sep=self._sep)
+    def get(self, key: str, default=None):
+        """
+        Return value for key if key is in dictionary, else default.
 
-    def __delitem__(self, key: Key):
-        return del_nested(self._data, key, sep=self._sep)
+        Parameters
+        ----------
+        key : str
+            Composite key.
+        default : object, optional
+            Default value if key is not found.
+
+        Returns
+        -------
+        object
+            Value for the key or default.
+
+        Examples
+        --------
+        >>> h = HDict({'k.v': 9})
+        >>> h.get('k.v')
+        9
+        >>> h.get('missing', 0)
+        0
+        """
+
+        if key not in self:
+            return default
+
+        return self[key]
 
     def pop(self, key: Key, *default):
+        """
+        Remove specified key and return the corresponding value.
+
+        Parameters
+        ----------
+        key : str
+            Composite key to remove.
+        default : object, optional
+            Value to return if key is not found.
+
+        Returns
+        -------
+        object
+            Value of the removed key or default.
+
+        Examples
+        --------
+        >>> h = HDict({'a.b': 2})
+        >>> h.pop('a.b')
+        2
+        >>> h.pop('not.there', 5)
+        5
+        """
+
         assert len(default) <= 1, "Expected at most one default value"
+
         if key not in self and len(default) > 0:
             return default[0]
+
         val = pop_nested(self._data, key, sep=self._sep)
+
         if isinstance(val, dict):
             val = HDict(val, _sep=self._sep)
+
         return val
 
     def update(self, other: Union["HDict", dict]):
