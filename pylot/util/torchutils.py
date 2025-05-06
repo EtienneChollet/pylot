@@ -1,5 +1,4 @@
-import torch
-
+from pylot.torch.torchlib import torch
 
 def to_device(inputs, device, channels_last=False):
 
@@ -31,7 +30,6 @@ def to_device(inputs, device, channels_last=False):
 
 
 def torch_traceback():
-    import torch
     from rich.traceback import install
 
     install(show_locals=True)

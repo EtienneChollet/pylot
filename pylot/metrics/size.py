@@ -1,5 +1,5 @@
 import numpy as np
-import torch
+from pylot.torch.torchlib import torch
 
 # https://pytorch.org/docs/stable/tensor_attributes.html
 dtype2bits = {

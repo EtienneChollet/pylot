@@ -1,6 +1,9 @@
 import os
-import s3fs
 import getpass
+
+from pylot.util.imports import optional_import
+
+s3fs = optional_import('s3fs')
 
 class S3Copy:
     def __init__(self, experiment):

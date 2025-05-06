@@ -3,7 +3,6 @@ import json
 from tabulate import tabulate
 from loguru import logger
 
-from ..util import S3Path
 from ..util.summary import summary
 
 from ..metrics import module_table, parameter_table
@@ -67,32 +66,6 @@ def Summary(experiment, filename="summary.txt"):
                 as_stats=True,
             )
             json.dump(s, f)
-
-
-def Topology(experiment, filename="topology", extension="svg"):
-    assert extension in ("pdf", "svg")
-    from torchviz import make_dot
-
-    x, y = next(iter(experiment.train_dl))
-    x = x.to(experiment.device)
-    y = y.to(experiment.device)
-
-    # Save model topology
-    topology_path = experiment.path / filename
-    topology_pdf_path = topology_path.with_suffix("." + extension)
-
-    if not topology_pdf_path.exists():
-
-        yhat = experiment.model(x)
-        loss = experiment.loss_func(yhat, y)
-        g = make_dot(loss)
-        if extension == "svg":
-            g.format = "svg"
-        with S3Path.as_local(topology_path) as lf:
-            g.render(lf)
-        # Interested in pdf, the graphviz file can be removed
-        if topology_path.exists():
-            topology_path.unlink()
 
 
 def CheckHalfCosineSchedule(experiment):

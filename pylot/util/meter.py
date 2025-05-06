@@ -4,7 +4,7 @@ from typing import Union, Iterable
 from heapq import heappop, heappush
 
 import numpy as np
-import torch
+from pylot.torch.torchlib import torch
 
 Numeric = Union[np.ndarray, torch.Tensor, int, float]
 Numerics = Union[Iterable[Numeric]]

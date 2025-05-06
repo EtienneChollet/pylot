@@ -1,15 +1,14 @@
 from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor
 
-import torch
 import numpy as np
 from PIL import Image
 from pydantic import validate_call
-from sklearn.model_selection import train_test_split
 from torchvision.datasets import MNIST
 
 from tqdm.auto import tqdm
 
+from pylot.torch.torchlib import torch
 from pylot.datasets import IndexedImageFolder
 
 # Download and untar
@@ -45,6 +44,7 @@ class notMNIST(MNIST):
         download: bool = False,
         preload: bool = True,
     ):
+        from sklearn.model_selection import train_test_split
         if download:
             raise NotImplementedError
         self.train = train

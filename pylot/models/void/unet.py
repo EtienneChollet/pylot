@@ -1,10 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 
-import torch
-from torch import Tensor
-from torch import nn
-import torch.nn.functional as F
+from pylot.torch.torchlib import torch, Tensor, nn, F
 
 from ...nn import get_nonlinearity
 from ...nn.hyper import VoidModule, VoidConvBlock

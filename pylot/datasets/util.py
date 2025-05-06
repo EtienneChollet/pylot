@@ -1,7 +1,6 @@
 import math
 import numpy as np
-from sklearn.model_selection import train_test_split
-import torch
+from pylot.torch.torchlib import torch
 from torch.utils.data import random_split, Subset
 
 
@@ -16,6 +15,8 @@ def train_val_split(dataset, val_split, seed=None):
 
 
 def stratified_train_val_split(dataset, val_split, seed=None):
+    from sklearn.model_selection import train_test_split
+
     indices = np.arange(len(dataset))
     stratify = getattr(dataset, 'targets', None)
     train_indices, val_indices = train_test_split(

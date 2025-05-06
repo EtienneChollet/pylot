@@ -1,4 +1,4 @@
-import torch
+from pylot.torch.torchlib import torch
 
 
 def gradient_penalty(y, x, device):

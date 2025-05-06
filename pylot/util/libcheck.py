@@ -26,13 +26,13 @@ def check_scipy_mkl():
 
 
 def check_torch_cuda():
-    import torch
+    from pylot.torch.torchlib import torch
 
     return torch.cuda.is_available()
 
 
 def check_torch_cudnn_benchmark():
-    import torch
+    from pylot.torch.torchlib import torch
 
     return torch.backends.cudnn.benchmark
 

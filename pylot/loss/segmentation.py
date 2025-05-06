@@ -1,15 +1,12 @@
 from typing import Optional, Union
 
-import torch
-from torch import Tensor
-
 from pydantic import validate_call
 
 from .util import _loss_module_from_func
 from ..util.more_functools import partial
 from ..metrics.segmentation import soft_dice_score, soft_jaccard_score, pixel_mse
 from ..metrics.util import InputMode, Reduction
-
+from pylot.torch.torchlib import torch, Tensor
 
 @validate_call(config=dict(arbitrary_types_allowed=True))
 def soft_dice_loss(

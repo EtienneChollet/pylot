@@ -1,5 +1,4 @@
-import torch
-from torch import nn
+from pylot.torch.torchlib import torch, nn
 
 # from ..loss.wgan import gradient_penalty, G_wgan, D_wgan_gp
 

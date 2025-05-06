@@ -1,5 +1,4 @@
-from torch import Tensor
-import torch.nn.functional as F
+from pylot.torch.torchlib import Tensor, F
 
 from .void import VoidModule
 from .xparam import ExternalParameter

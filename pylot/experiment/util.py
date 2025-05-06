@@ -4,13 +4,12 @@ import importlib
 import pathlib
 import random
 from typing import Tuple, Dict, List
+import numpy as np
 
 from ..util.config import HDict, Config
 from ..util.ioutil import autoload
 from ..util.more_functools import partial
-
-import torch
-import numpy as np
+from pylot.torch.torchlib import torch
 
 
 def fix_seed(seed):

@@ -3,9 +3,7 @@
 [description]
 """
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+from pylot.torch.torchlib import torch, nn, F
 
 # from . import weights_path
 

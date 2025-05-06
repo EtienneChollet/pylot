@@ -4,8 +4,7 @@ from typing import Tuple
 import numpy as np
 import pandas as pd
 from PIL import Image
-import torch.nn.functional as F
-from torch.utils.data import Dataset
+from pylot.torch.torchlib import F, Dataset
 from torchvision.datasets.utils import download_and_extract_archive
 
 from ..path import DatapathMixin

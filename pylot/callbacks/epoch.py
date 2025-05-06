@@ -10,7 +10,7 @@ from pydantic import validate_call
 from tabulate import tabulate
 from loguru import logger
 
-import torch
+from pylot.torch.torchlib import torch
 import pandas as pd
 
 def PrintLogged(experiment):

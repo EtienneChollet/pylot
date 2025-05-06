@@ -1,4 +1,4 @@
-import torch.nn as nn
+from pylot.torch.torchlib import nn
 from torchvision.models.resnet import ResNet, Bottleneck, BasicBlock
 
 __all__ = [

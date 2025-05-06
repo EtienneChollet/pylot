@@ -2,8 +2,7 @@ import math
 
 from typing import List, Dict, Optional, Any, Tuple
 
-import torch
-from torch import nn
+from pylot.torch.torchlib import torch, nn
 from ..loss import vae_loss
 
 

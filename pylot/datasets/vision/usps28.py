@@ -1,10 +1,9 @@
 import os
 
-import torch
 import numpy as np
 from torchvision.datasets import MNIST, USPS
 from tqdm.auto import tqdm
-
+from pylot.torch.torchlib import torch
 
 class USPS28(MNIST):
     def _load_data(self):

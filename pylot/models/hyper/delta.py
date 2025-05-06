@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, Optional, Union
 
-import torch
-from torch import Tensor, nn
+from pylot.torch.torchlib import torch, nn, Tensor
 
 from ...nn.init import initialize_bias, initialize_weight
 from .base import HyperNet

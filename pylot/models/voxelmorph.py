@@ -1,7 +1,6 @@
 from typing import Dict, Tuple, Any
 
-import torch
-from torch import nn, Tensor
+from pylot.torch.torchlib import torch, nn, Tensor
 
 from ..nn.spatial_transformer import SpatialTransformer
 from .unet import UNet

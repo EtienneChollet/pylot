@@ -2,8 +2,7 @@ from typing import Literal, Optional, Tuple, Union
 
 import einops as E
 from pydantic import validate_call
-import torch
-import torch.nn.functional as F
+from pylot.torch.torchlib import torch, F
 from torch import Tensor
 
 InputMode = Literal["binary", "multiclass", "onehot", "auto"]

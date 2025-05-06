@@ -13,7 +13,6 @@ from .epoch import (
 
 from .setup import (
     Summary,
-    Topology,
     ParameterTable,
     ModuleTable,
     CheckHalfCosineSchedule,

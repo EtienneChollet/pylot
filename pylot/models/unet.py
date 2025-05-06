@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional
 
-import torch
-import torch.nn.functional as F
+from pylot.torch.torchlib import torch, F
 from torch import Tensor, nn
 
 from ..nn import ConvBlock, get_nonlinearity

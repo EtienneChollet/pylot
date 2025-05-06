@@ -1,6 +1,6 @@
 import string
 from typing import Union, Tuple
-import torch
+from pylot.torch.torchlib import torch
 import numpy as np
 from tabulate import tabulate
 

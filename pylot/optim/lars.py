@@ -6,8 +6,7 @@ References:
     - https://github.com/noahgolmant/pytorch-lars/blob/master/lars.py
 """
 
-import torch
-from torch.optim import SGD
+from pylot.torch.torchlib import torch
 
 from .wrapper import OptimWrapper
 from ..util import delegates, separate_kwargs
@@ -120,8 +119,8 @@ class LARS(OptimWrapper):
 
 class SGDLARS(LARS):
     @delegates(to=LARS.__init__)
-    @delegates(to=SGD.__init__, keep=True, but=["eps", "trust_coef"])
+    @delegates(to=torch.optim.SGD.__init__, keep=True, but=["eps", "trust_coef"])
     def __init__(self, params, **kwargs):
-        sgd_kwargs, lars_kwargs = separate_kwargs(kwargs, SGD.__init__)
-        optim = SGD(params, **sgd_kwargs)
+        sgd_kwargs, lars_kwargs = separate_kwargs(kwargs, torch.optim.SGD.__init__)
+        optim = torch.optim.SGD(params, **sgd_kwargs)
         super().__init__(optim, **lars_kwargs)

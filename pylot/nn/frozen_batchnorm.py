@@ -1,5 +1,4 @@
-import torch
-from torch import nn
+from pylot.torch.torchlib import torch, nn
 
 
 class FrozenBatchNorm2d(nn.Module):

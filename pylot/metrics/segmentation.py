@@ -1,7 +1,6 @@
 from typing import Optional, Union, List, Literal
 
-import torch
-from torch import Tensor
+from pylot.torch.torchlib import torch, Tensor
 from pydantic import validate_call
 
 

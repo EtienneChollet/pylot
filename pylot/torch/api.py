@@ -1,7 +1,6 @@
 from fastcore.utils import patch
 import numpy
-import torch
-
+from pylot.torch.torchlib import torch
 
 @patch
 def np(tensor: torch.Tensor) -> numpy.ndarray:

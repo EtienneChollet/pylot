@@ -1,13 +1,12 @@
 # from https://gist.github.com/rwightman/5a7c9232eb57da20afa80cedb8ac2d38
-import torch.utils.data as data
 import os
 import re
-import torch
+
 import tarfile
 from PIL import Image
 
 from ..util import autoload
-
+from pylot.torch.torchlib import torch, Dataset
 
 IMG_EXTENSIONS = [".png", ".jpg", ".jpeg"]
 

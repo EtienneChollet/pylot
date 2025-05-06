@@ -2,9 +2,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Tuple, Optional, Union
 
 import numpy as np
-import torch
-from torch import nn
-from torch import Tensor
+from pylot.torch.torchlib import torch, nn, Tensor
 
 from ...nn.init import initialize_layer
 from ...nn.nonlinearity import get_nonlinearity

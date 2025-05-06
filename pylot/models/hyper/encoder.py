@@ -1,5 +1,5 @@
 import math
-import torch
+from pylot.torch.torchlib import torch
 
 
 class Encoder:

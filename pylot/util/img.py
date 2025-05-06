@@ -1,8 +1,6 @@
 import numpy as np
 from PIL import Image, ImageChops, ImageOps
-
-import torch
-
+from pylot.torch.torchlib import torch
 
 def RGB_project(x):
     C, H, W = x.shape

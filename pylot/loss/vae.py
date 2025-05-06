@@ -1,5 +1,4 @@
-import torch
-import torch.nn.functional as F
+from pylot.torch.torchlib import torch, F
 
 def kld_loss(mu, logvar):
     # see Appendix B from VAE paper:

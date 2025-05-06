@@ -1,8 +1,7 @@
 import math
 
 import numpy as np
-import torch
-from torch import nn
+from pylot.torch.torchlib import torch, nn
 
 from .util import _loss_module_from_func
 

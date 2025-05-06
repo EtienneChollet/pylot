@@ -1,6 +1,5 @@
 import numpy as np
-import torch
-from torch import nn
+from pylot.torch.torchlib import torch, nn
 
 from .size import dtype2bits
 from ..pruning.utils import get_activations

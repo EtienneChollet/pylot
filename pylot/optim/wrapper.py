@@ -1,8 +1,7 @@
-import torch
-from torch.optim import Optimizer
+from pylot.torch.torchlib import torch
 
 
-class OptimWrapper(Optimizer):
+class OptimWrapper(torch.optim.Optimizer):
 
     # Mixin class that defines convenient functions for writing Optimizer Wrappers
 

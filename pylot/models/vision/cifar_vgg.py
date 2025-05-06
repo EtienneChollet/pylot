@@ -3,12 +3,7 @@
 # BLOG POST : http://torch.ch/blog/2015/07/30/cifar.html
 
 import math
-import torch
-import torch.nn as nn
-
-# import torch.nn.functional as F
-import torch.nn.init as init
-
+from pylot.torch.torchlib import torch, nn
 
 
 class ConvBNReLU(nn.Module):
@@ -86,9 +81,9 @@ class VGGBnDrop(nn.Module):
     def reset_weights(self):
         def init_weights(module):
             if isinstance(module, nn.Conv2d):
-                fan_in, _ = init._calculate_fan_in_and_fan_out(module.weight)
-                init.normal_(module.weight, 0, math.sqrt(2) / fan_in)
-                init.zeros_(module.bias)
+                fan_in, _ = nn.init._calculate_fan_in_and_fan_out(module.weight)
+                nn.init.normal_(module.weight, 0, math.sqrt(2) / fan_in)
+                nn.init.zeros_(module.bias)
 
         self.apply(init_weights)
 

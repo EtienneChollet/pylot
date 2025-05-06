@@ -3,8 +3,7 @@ from contextlib import contextmanager
 import functools
 import time
 
-import torch
-import torch.cuda
+from pylot.torch.torchlib import torch
 import pandas as pd
 
 from .meter import StatsMeter

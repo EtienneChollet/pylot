@@ -3,7 +3,6 @@ from typing import List, Dict
 from collections import defaultdict
 
 import numpy as np
-from scipy.spatial.distance import pdist
 
 
 def undirected_connected_components(graph: Dict[int, List[int]]) -> List[List[int]]:
@@ -26,6 +25,7 @@ def undirected_connected_components(graph: Dict[int, List[int]]) -> List[List[in
 
 # Function to find sets of duplicate rows
 def array_duplicate_rowsets(arrays: np.ndarray, metric="cityblock", names=None):
+    from scipy.spatial.distance import pdist
     # compute distances and threshold
     indices = np.arange(len(arrays))
     pair_dist = np.isclose(pdist(arrays, metric=metric), 0)

@@ -6,8 +6,7 @@ from datetime import datetime
 
 import jc
 import psutil
-import torch
-
+from pylot.torch.torchlib import torch
 
 def platform_info():
     return {

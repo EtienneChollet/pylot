@@ -1,5 +1,4 @@
-import torch
-
+from pylot.torch.torchlib import torch
 from .wrapper import OptimWrapper
 
 

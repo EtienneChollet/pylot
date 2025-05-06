@@ -1,13 +1,14 @@
 from typing import List, Tuple
 
 from pydantic import validate_call
-from sklearn.model_selection import train_test_split
+
 
 
 @validate_call
 def data_splits(
     values: List[str], splits: Tuple[float, float, float], seed: int
 ) -> Tuple[List[str], List[str], List[str]]:
+    from sklearn.model_selection import train_test_split
 
     if len(set(values)) != len(values):
         raise ValueError(f"Duplicate entries found in values")

@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional, List, Any
 
-import torch
-from torch import Tensor
+from pylot.torch.torchlib import torch, Tensor
 
 from ..nn.hooks import HookedModule
 

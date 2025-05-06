@@ -1,7 +1,7 @@
 import pathlib
 from typing import Optional
 
-import torch
+from pylot.torch.torchlib import torch
 from .train import TrainExperiment
 from ..util import Config, autoload
 

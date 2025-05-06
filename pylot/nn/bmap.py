@@ -2,8 +2,7 @@ from typing import Callable, Tuple, Union
 
 import numpy as np
 
-import torch
-from torch import nn
+from pylot.torch.torchlib import torch, nn
 
 Axes = Union[int, Tuple[int, ...]]
 

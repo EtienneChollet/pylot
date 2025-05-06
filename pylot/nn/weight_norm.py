@@ -1,6 +1,4 @@
-import torch
-import torch.nn as nn
-from torch.nn import Parameter
+from pylot.torch.torchlib import torch, nn
 
 # Hookless implementation of weight norm
 
@@ -22,8 +20,8 @@ class WeightNorm(nn.Module):
             # construct g,v such that w = g/||v|| * v
             g = torch.norm(w)
             v = w/g.expand_as(w)
-            g = Parameter(g.data)
-            v = Parameter(v.data)
+            g = nn.Parameter(g.data)
+            v = nn.Parameter(v.data)
 
             # remove w from parameter list
             del self.module._parameters[name_w]

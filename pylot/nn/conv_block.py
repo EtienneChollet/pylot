@@ -1,13 +1,14 @@
 from dataclasses import dataclass
 from typing import Optional, Union, Literal, List, Any, Dict
 
-import torch.nn as nn
+
 
 from .nonlinearity import get_nonlinearity
 from .init import initialize_layer
 from .norm import get_normlayer, NormType
 from .drop import DropPath
 from ..util.validation import validate_arguments_init
+from pylot.torch.torchlib import nn
 
 
 @validate_arguments_init

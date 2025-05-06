@@ -1,4 +1,4 @@
-import torch.nn.functional as F
+from pylot.torch.torchlib import F
 
 
 def resize(x, scale_factor=None, size=None, interpolation_mode="linear"):

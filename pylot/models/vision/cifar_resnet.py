@@ -30,10 +30,7 @@ Reference:
 If you use this implementation in you work, please don't forget to mention the
 author, Yerlan Idelbayev.
 """
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.nn.init as init
+from pylot.torch.torchlib import torch, nn, F
 
 
 __all__ = [
@@ -49,7 +46,7 @@ __all__ = [
 
 def _weights_init(m):
     if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
-        init.kaiming_normal_(m.weight)
+        nn.init.kaiming_normal_(m.weight)
 
 
 class LambdaLayer(nn.Module):

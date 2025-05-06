@@ -1,5 +1,4 @@
-import torch
-from torch import nn
+from pylot.torch.torchlib import torch, nn
 
 
 class Sine(nn.Module):

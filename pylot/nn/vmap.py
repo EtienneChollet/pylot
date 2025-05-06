@@ -1,7 +1,6 @@
 from typing import Callable
 
-import torch
-from torch import nn
+from pylot.torch.torchlib import torch, nn
 import einops as E
 
 # Jaxlike vmap exploiting reshaping to the batch dimension.

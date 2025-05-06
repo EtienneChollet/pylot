@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
-import torch
-from torch import nn
+from pylot.torch.torchlib import torch, nn
 
 from contextlib import contextmanager
 

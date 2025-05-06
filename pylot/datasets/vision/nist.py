@@ -3,7 +3,6 @@ from typing import Literal
 import torchvision.transforms as TF
 import torchvision.datasets as TD
 from pydantic import validate_call
-from sklearn.model_selection import train_test_split
 import numpy as np
 
 from ..indexed import IndexedImageDataset
@@ -123,6 +122,8 @@ def _fromVisionDataset(dataset_name):
             self._init_split()
 
         def _init_split(self):
+            from sklearn.model_selection import train_test_split
+
             if self.split == "test":
                 self.indices = np.arange(len(self.targets))
             elif self.val_split == 0:

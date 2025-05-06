@@ -11,8 +11,7 @@ from typing import Optional
 
 from pydantic import validate_call
 
-import torch
-from torch import nn
+from pylot.torch.torchlib import torch, nn
 
 
 class ModelEMA(nn.Module):

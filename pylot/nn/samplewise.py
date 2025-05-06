@@ -1,9 +1,7 @@
 from typing import List
 
 import numpy as np
-import torch
-from torch import Tensor
-from torch import nn
+from pylot.torch.torchlib import torch, nn, Tensor
 
 
 class SamplewiseLayerNorm(nn.Module):

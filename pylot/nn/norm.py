@@ -1,9 +1,8 @@
 from typing import Literal, Tuple, Union
 
 import einops as E
-import torch
 from pylot.nn import batch_renorm
-from torch import nn
+from pylot.torch.torchlib import torch, nn
 
 NormType = Union[
     Literal["batch", "batchre", "layer", "instance", "channel"],

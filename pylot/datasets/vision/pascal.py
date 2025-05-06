@@ -3,8 +3,7 @@ from typing import Tuple
 
 import numpy as np
 from torchvision.datasets import VOCSegmentation
-from torch.utils.data import Dataset
-import torch.nn.functional as F
+from pylot.torch.torchlib import F, Dataset
 
 from ..path import DatapathMixin
 

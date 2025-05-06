@@ -1,7 +1,7 @@
 # modified from  
 # https://github.com/ludvb/batchrenorm/blob/master/batchrenorm/batchrenorm.py
 # https://github.com/mf1024/Batch-Renormalization-PyTorch/blob/master/batch_renormalization.py
-import torch
+from pylot.torch.torchlib import torch
 from pydantic import validate_call
 
 

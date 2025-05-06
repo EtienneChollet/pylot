@@ -13,12 +13,10 @@ import pathlib
 from typing import List
 
 from tqdm import tqdm
-import torch
 import wandb
-from torch import nn
-from torch.utils.data import DataLoader
 from loguru import logger
 
+from pylot.torch.torchlib import torch, DataLoader, nn
 from ..nn.util import num_params, split_param_groups_by_weight_decay
 from ..util.ioutil import autosave
 from ..util.meter import MeterDict

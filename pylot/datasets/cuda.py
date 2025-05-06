@@ -1,6 +1,4 @@
-import torch
-from torch.utils.data import Dataset
-
+from pylot.torch.torchlib import torch, Dataset
 from ..util import to_device
 
 

@@ -1,5 +1,5 @@
 from pylot.util import to_device
-import torch
+from pylot.torch.torchlib import torch
 from pylot.experiment import TrainExperiment
 
 

@@ -7,11 +7,10 @@ from __future__ import annotations
 import collections
 from collections import OrderedDict
 
-import torch
-from torch.nn import Module
+from pylot.torch.torchlib import torch, nn
 
 
-class BufferDict(Module):
+class BufferDict(nn.Module):
     r"""Holds buffers in a dictionary.
 
     BufferDict can be indexed like a regular Python dictionary, but buffers it

@@ -1,7 +1,7 @@
 import itertools
 from typing import Tuple, List
 
-import torch
+from pylot.torch.torchlib import torch
 from tqdm.auto import tqdm
 
 import pandas as pd

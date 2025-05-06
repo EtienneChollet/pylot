@@ -1,6 +1,5 @@
 from functools import wraps
-from torch import nn
-import torch.nn.functional as F
+from pylot.torch.torchlib import nn
 
 
 def flatten_loss(loss_func, keep_channels=False):

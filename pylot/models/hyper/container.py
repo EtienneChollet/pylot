@@ -1,8 +1,7 @@
 import copy
 from typing import Dict, Any
 
-import torch
-from torch import nn
+from pylot.torch.torchlib import torch, nn
 
 from .base import HyperNet
 from .delta import DeltaHyperNet

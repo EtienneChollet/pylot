@@ -18,7 +18,6 @@ import PIL.JpegImagePlugin
 import pyarrow as pa
 import pyarrow.feather as feather
 import pyarrow.parquet as pq
-import scipy.io
 import xxhash
 import yaml
 import zstd
@@ -26,7 +25,7 @@ from loguru import logger
 from loguru._logger import FileSink
 
 import pandas as pd
-import torch
+from pylot.torch.torchlib import torch
 
 m.patch()
 
@@ -471,11 +470,13 @@ class MatFormat(FileFormat):
 
     @classmethod
     def save(cls, obj, fp):
+        import scipy.io
         fp = cls.check_fp(fp)
         scipy.io.savemat(fp, obj)
 
     @classmethod
     def load(cls, fp) -> object:
+        import scipy.io
         fp = cls.check_fp(fp)
         return scipy.io.loadmat(fp)
 

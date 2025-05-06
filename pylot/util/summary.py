@@ -2,8 +2,7 @@ import pathlib
 from collections import OrderedDict
 
 import numpy as np
-import torch
-import torch.nn as nn
+from pylot.torch.torchlib import torch, nn
 
 
 def summary(model, input_size, batch_size=-1, device="cuda", echo=True, as_stats=False):

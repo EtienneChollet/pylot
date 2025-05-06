@@ -1,6 +1,6 @@
 from typing import Optional, Union, Tuple, Dict
 
-import torch
+
 import numpy as np
 import kornia as K
 from kornia.constants import BorderType
@@ -8,7 +8,7 @@ from kornia.constants import BorderType
 from pydantic import validate_call
 
 from .common import AugmentationBase2D, _as_single_val, _as2tuple
-
+from pylot.torch.torchlib import torch
 
 class RandomBrightnessContrast(AugmentationBase2D):
     def __init__(

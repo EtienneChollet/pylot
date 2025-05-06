@@ -1,6 +1,4 @@
-import torch
-from torch import nn
-import torch.autograd
+from pylot.torch.torchlib import torch, nn
 
 
 # Functions to perform L1 and L2 regularization on the output of a layer

@@ -1,6 +1,4 @@
-import torch
-from torch import nn
-import torch.nn.functional as F
+from pylot.torch.torchlib import torch, nn, F
 
 
 class SpatialTransformer(nn.Module):
