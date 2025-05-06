@@ -2,7 +2,6 @@ import itertools
 from abc import abstractmethod
 from typing import Union, Iterable
 from heapq import heappop, heappush
-from collections import defaultdict
 
 import numpy as np
 import torch

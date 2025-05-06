@@ -2,7 +2,6 @@ from typing import Optional, Union, List, Literal
 
 import torch
 from torch import Tensor
-import torch.nn.functional as F
 from pydantic import validate_call
 
 

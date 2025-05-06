@@ -6,7 +6,6 @@ from torch import nn
 from contextlib import contextmanager
 
 from pylot.nn.hooks import HookedModule
-from pylot.util.meta import store_attr
 from pylot.nn.hyper import VoidModule
 
 from fnmatch import fnmatch

@@ -13,7 +13,6 @@ from .encoder import Encoder
 
 Shapes = Dict[str, Tuple[int, ...]]
 
-from .base import HyperNet
 
 
 class HyperWeightNorm(nn.Module):

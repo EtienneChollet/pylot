@@ -8,7 +8,7 @@
 import io
 import math
 from concurrent.futures import ProcessPoolExecutor
-from typing import Any, Callable, Literal, Optional
+from typing import Callable, Literal, Optional
 
 import lmdb
 import numpy as np
@@ -18,7 +18,6 @@ from tqdm.auto import tqdm
 
 from pylot.datasets import IndexedImageFolder
 from pylot.util.ioutil import autodecode, autoencode
-from torch.utils.data import Dataset
 
 
 class ImageFolderLMDB(VisionDataset):

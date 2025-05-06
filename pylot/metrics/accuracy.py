@@ -1,7 +1,5 @@
 import numpy as np
-import torch
 
-from torch import Tensor
 
 
 def correct(output, target, topk=(1,)):

@@ -1,7 +1,4 @@
-import matplotlib.pyplot as plt
 import matplotlib.scale as mscale
-import matplotlib.transforms as mtransforms
-import numpy as np
 
 
 class Log2Scale(mscale.LogScale):

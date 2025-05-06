@@ -1,4 +1,3 @@
-import time
 import signal
 import sys
 import subprocess
@@ -37,7 +36,7 @@ class InspectStack:
     """
 
     def __init__(self, experiment):
-        import stackprinter
+        pass
 
         signal.signal(signal.SIGUSR2, inspect_stack_handler)
 
@@ -96,7 +95,6 @@ class TorchTraceback:
 
 
 ######################################
-import torch.cuda
 import subprocess
 
 # from ..util.gpu import gpu_stats

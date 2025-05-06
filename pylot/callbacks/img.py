@@ -4,7 +4,6 @@ from typing import Optional, List, Any
 import torch
 from torch import Tensor
 
-from ..util.img import toImg, torch_renorm
 from ..nn.hooks import HookedModule
 
 from .util import sample_batches, tensor2html

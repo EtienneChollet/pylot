@@ -1,4 +1,3 @@
-import torch
 
 from pylot.util import autosave, autoload
 

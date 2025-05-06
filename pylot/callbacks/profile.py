@@ -4,7 +4,6 @@ import math
 from tabulate import tabulate
 from loguru import logger
 
-from ..util import printc
 from ..util.timer import StatsCUDATimer, StatsTimer
 from ..util.torchutils import to_device
 

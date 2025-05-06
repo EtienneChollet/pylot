@@ -1,5 +1,5 @@
 import copy
-from typing import Dict, Any, Union
+from typing import Dict, Any
 
 import torch
 from torch import nn

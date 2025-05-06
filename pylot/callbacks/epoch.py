@@ -1,10 +1,9 @@
 import copy
 import sys
 import time
-from collections import defaultdict
 from datetime import datetime, timedelta
 from fnmatch import fnmatch
-from typing import Literal, Union
+from typing import Literal
 
 import numpy as np
 from pydantic import validate_call
@@ -24,15 +23,20 @@ def PrintLogged(experiment):
 
         df = df[df.epoch == epoch].drop(columns=["epoch"])
 
-        dfp = pd.pivot(
+        logger.critical(df)
+
+        dfp = pd.pivot_table(
             pd.melt(
                 df,
                 id_vars="phase",
-                var_name="metric"
+                var_name="metric",
             ),
             index="metric",
             columns="phase",
+            aggfunc="mean",
         )
+
+        logger.critical(dfp)
 
         dfp.columns = [x[1] for x in dfp.columns]
 

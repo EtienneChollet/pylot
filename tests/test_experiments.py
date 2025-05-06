@@ -3,8 +3,6 @@ Tests for PyLot experiments.
 """
 
 import pytest
-from loguru import logger
-import yaml
 from pathlib import Path
 import pylot.experiment.base as base
 from pylot.util.ioutil import autosave

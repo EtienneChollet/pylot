@@ -1,9 +1,8 @@
 import collections
 import getpass
 import itertools
-import json
 import pathlib
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from fnmatch import fnmatch
 from typing import Optional, List, Union, Dict, Tuple
 
@@ -16,7 +15,6 @@ import pandas as pd
 
 # unused import because we want the patching side-effects
 # on pd.DataFrames
-from ..pandas import api
 from ..pandas.api import augment_from_attrs
 from ..pandas.convenience import (
     ensure_hashable, to_categories, concat_with_attrs, remove_redundant_columns

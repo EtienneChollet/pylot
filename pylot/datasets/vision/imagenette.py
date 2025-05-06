@@ -3,7 +3,6 @@ from typing import Literal
 from ..lmdb import ImageFolderLMDB
 from ..path import DatapathMixin
 
-from pydantic import validate_call
 from ...util.meta import store_attr
 
 __all__ = ["Imagenette", "Imagewoof"]

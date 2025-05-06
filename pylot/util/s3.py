@@ -1,6 +1,5 @@
 import os
 import pathlib
-import tempfile
 import shutil
 import uuid
 from contextlib import contextmanager

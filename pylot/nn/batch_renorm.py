@@ -3,7 +3,6 @@
 # https://github.com/mf1024/Batch-Renormalization-PyTorch/blob/master/batch_renormalization.py
 import torch
 from pydantic import validate_call
-import einops as E
 
 
 __all__ = ["BatchRenorm1d", "BatchRenorm2d", "BatchRenorm3d"]

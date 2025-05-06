@@ -31,7 +31,7 @@ def to_device(inputs, device, channels_last=False):
 
 
 def torch_traceback():
-    import torch, numpy
+    import torch
     from rich.traceback import install
 
     install(show_locals=True)
@@ -63,7 +63,6 @@ def _make_graph(
         return find_name(of, self_input, suffix=cur)
 
     gr = mod.graph
-    toshow = []
     # list(traced_model.graph.nodes())[0]
     self_input = next(gr.inputs())
     self_type = self_input.type().str().split(".")[-1]

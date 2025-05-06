@@ -1,13 +1,10 @@
+from typing import List
+
 from torch import nn
 
 from . import separable
 from ...nn.nonlinearity import get_nonlinearity
-from ...nn.init import initialize_layer
-
-from typing import List, Optional, Union
-
 from .. import hyper
-
 from .void import VoidModule
 
 

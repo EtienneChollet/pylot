@@ -35,7 +35,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 
-from . import weights_path
 
 __all__ = [
     "ResNet",

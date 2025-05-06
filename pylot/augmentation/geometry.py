@@ -1,8 +1,4 @@
-from typing import Optional, Union
-
-import torch
 import kornia.augmentation as KA
-from kornia.constants import Resample, SamplePadding
 
 
 def RandomScale(scale, **kwargs):

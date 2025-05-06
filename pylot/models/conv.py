@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 
 from torch import nn, Tensor
-import torch.nn.functional as F
 
 from ..util import validate_arguments_init
 from ..nn import ConvBlock, resize, Flatten

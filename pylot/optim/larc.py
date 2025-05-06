@@ -1,7 +1,5 @@
 import torch
-from torch import nn
 from torch.optim import SGD
-from torch.nn.parameter import Parameter
 
 from ..util import delegates, separate_kwargs
 

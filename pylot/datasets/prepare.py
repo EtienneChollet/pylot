@@ -2,7 +2,6 @@
 # https://albumentations.ai/docs/examples/pytorch_semantic_segmentation/
 from urllib.request import urlretrieve
 import os
-import pathlib
 import shutil
 from tqdm.auto import tqdm
 

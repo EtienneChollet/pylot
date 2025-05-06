@@ -6,11 +6,11 @@ import numpy as np
 from PIL import Image
 from pydantic import validate_call
 from sklearn.model_selection import train_test_split
-from torchvision.datasets import ImageFolder, MNIST
+from torchvision.datasets import MNIST
 
 from tqdm.auto import tqdm
 
-from pylot.datasets import DatapathMixin, IndexedImageFolder
+from pylot.datasets import IndexedImageFolder
 
 # Download and untar
 # http://yaroslavvb.com/upload/notMNIST/notMNIST_large.tar.gz
