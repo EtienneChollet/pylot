@@ -47,7 +47,6 @@ mind.
 
 from . import analysis
 from . import callbacks
-from . import datasets
 from . import experiment
 from . import loss
 from . import metrics
@@ -61,7 +60,6 @@ from . import util
 
 from .analysis import *
 from .callbacks import *
-from .datasets import *
 from .experiment import *
 from .loss import *
 from .metrics import *
