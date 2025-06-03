@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pylot.torch.torchlib import torch
+from pylot.torch.torchlib import torch, Tensor
 from .util import _loss_module_from_func
 
 
