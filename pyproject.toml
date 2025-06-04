@@ -14,27 +14,19 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
 ]
-keywords = ["deep learning"]
+keywords = ["Deep Learning", "Experiment"]
 dependencies = [
-#    "albumentations",
-#    "box",
-#    "decoder",
-#    "device",
     "diskcache",
     "einops",
-#    "fastcore",
     "graphviz",
-#    "humanize",
-#    "imohash",
     "IPython",
     "ipywidgets",
     "jc",
     "Jinja2",
-    "kornia",
     "lmdbm",
      "lz4",
     "matplotlib",
-#    "more-itertools",
+    "more-itertools",
     "msgpack-numpy",
 #    "msgpack-python",
     "numpy",
@@ -50,7 +42,7 @@ dependencies = [
 #    "Pympler",
     "PyYAML",
     "rich",
-    "s3fs",
+#     "s3fs",
     "scikit-learn",
     "scipy",
     "seaborn",
@@ -65,6 +57,7 @@ dependencies = [
     "typer",
     "xxhash",
     "zstd",
+    "fastcore",
 ]
 
 requires-python = ">=3.9"
