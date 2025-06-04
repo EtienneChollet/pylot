@@ -10,6 +10,7 @@ from pylot.util.config import ImmutableConfig, FHDict
 from pylot.util.metrics import MetricsDict
 from pylot.util.thunder import ThunderDict
 
+
 @pytest.fixture
 def exp_dir(tmp_path: Path):
     """
@@ -75,7 +76,7 @@ def test_metrics_property(exp_dir):
     # Log another metric
     second_metric_real = {'mse': 1.0232}
     exp.metricsd['metrics'].log(second_metric_real)
-    
+
     first_metric = exp.metrics.data[0]
     second_metric = exp.metrics.data[1]
 
