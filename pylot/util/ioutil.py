@@ -71,7 +71,6 @@ class FileExtensionError(Exception):
 
 
 class FileFormat(ABC):
-
     """
     Base class that other formats inherit from
     children formats must overload one of (save|encode) and
@@ -166,7 +165,7 @@ class YamlFormat(FileFormat):
 
     @classmethod
     def encode(cls, obj) -> str:
-        return yaml.safe_dump(obj, indent=2).encode("utf-8")
+        return yaml.safe_dump(obj, indent=2, sort_keys=False).encode("utf-8")
 
     @classmethod
     def decode(cls, data: bytes) -> object:
@@ -176,7 +175,7 @@ class YamlFormat(FileFormat):
     def save(cls, obj, fp):
         fp = cls.check_fp(fp)
         with fp.open("w") as f:
-            yaml.safe_dump(obj, f)
+            yaml.safe_dump(obj, f, sort_keys=False)
 
     @classmethod
     def load(cls, fp) -> object:
@@ -601,7 +600,7 @@ def autosave(obj, path: Union[str, pathlib.Path], parents=True) -> object:
     # Check if extension is supported
     ext = path.suffix.strip(".")
     if ext not in _DEFAULTFORMAT:
-        
+
         msg = (
             f'Extension {ext} is not supported for autosaving. Unable to save'
             f'{path}'
