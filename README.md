@@ -60,7 +60,7 @@ log:
 ## 2 Define an Experiment
 
 ```python
-from pylot.experiment.base import TrainExperiment
+from pylot.experiment.train import TrainExperiment
 
 class MyExperiment(TrainExperiment):
     """
