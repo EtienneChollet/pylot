@@ -40,16 +40,21 @@ summary = defaultdict(int)
 log_path = 'tests/benchmarks/import_time.log'
 
 with open(log_path, 'r') as f:
+
     for line in f:
         if not line.startswith("import time:"):
             continue
+
         try:
+            # Split at the seperator
             parts = line.split('|')
-            time_us = int(parts[0].replace("import time:", "").strip())
+
+
+            time_us = int(parts[1].replace("import time:", "").strip())
             module = parts[2].strip().split('.')[0]  # top-level module
             summary[module] += time_us
         except Exception:
-            continue  # Skip malformed lines
+            continue
 
 # Sort by cumulative import time
 sorted_summary = sorted(summary.items(), key=lambda x: x[1], reverse=True)
