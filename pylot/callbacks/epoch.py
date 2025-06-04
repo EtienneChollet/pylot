@@ -13,6 +13,7 @@ from loguru import logger
 from pylot.torch.torchlib import torch
 import pandas as pd
 
+
 def PrintLogged(experiment):
 
     def PrintLoggedCallback(epoch):
@@ -22,8 +23,6 @@ def PrintLogged(experiment):
         df = experiment.metrics.df
 
         df = df[df.epoch == epoch].drop(columns=["epoch"])
-
-        logger.critical(df)
 
         dfp = pd.pivot_table(
             pd.melt(
@@ -35,8 +34,6 @@ def PrintLogged(experiment):
             columns="phase",
             aggfunc="mean",
         )
-
-        logger.critical(dfp)
 
         dfp.columns = [x[1] for x in dfp.columns]
 
