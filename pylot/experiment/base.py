@@ -33,7 +33,7 @@ import functools
 from abc import abstractmethod
 from typing import Union
 
-# Third party imports 
+# Third party imports
 import yaml
 from loguru import logger
 
@@ -41,7 +41,7 @@ from loguru import logger
 from .util import fix_seed, absolute_import, generate_tuid
 from ..util.metrics import MetricsDict
 from ..util.config import HDict, FHDict, ImmutableConfig, config_digest
-from ..util.ioutil import autosave, ensure_logging
+from ..util.ioutil import autosave
 from ..util.libcheck import check_environment
 from ..util.thunder import ThunderDict
 
@@ -93,7 +93,7 @@ class BaseExperiment:
     def __init__(
         self,
         path: str,
-        logging_level: str = 'debug',
+        logging_level: str = 'CRITICAL',
     ):
         """
         Initialize an experiment from an existing experiment directory.
@@ -113,10 +113,10 @@ class BaseExperiment:
         self.path = path
 
         # Make sure logging is set up and make first log confirming experiment
-        ensure_logging(
-            log_file_abspath=self.path / 'output.log',
-            level=logging_level,
-        )
+        # ensure_logging(
+        #    log_file_abspath=self.path / 'output.log',
+        #    level=logging_level,
+        # )
 
         logger.info(f'Absolute path to experiment run: "{self.path}"')
 
@@ -131,7 +131,7 @@ class BaseExperiment:
         # Load the configuration file (defaults to 'config.yml')
         self.config = ImmutableConfig.from_file(path / "config.yml")
 
-        config_str = yaml.safe_dump(self.config._data, sort_keys=False)
+        # self.config = yaml.safe_dump(self.config._data, sort_keys=False)
 
         # Initialize stores
         self.properties = FHDict(self.path / "properties.json")
@@ -211,7 +211,6 @@ class BaseExperiment:
 
         # Make a default root for the experiment
         default_experiment_root = 'pylot_experiments'
-        print('config: ', config)
 
         # Make sure there's a valid root directory for the experiments
         if "log" not in config:
@@ -221,7 +220,7 @@ class BaseExperiment:
         if "root" not in config["log"]:
             config['log']['root'] = default_experiment_root
 
-        # Determine base folder for experiments        
+        # Determine base folder for experiments
         experiments_root = pathlib.Path(config['log']['root'])
 
         # Log the root path of the experiments
@@ -235,7 +234,7 @@ class BaseExperiment:
         digest = config_digest(config)
 
         # Generate the (unique) name for the experiment run.
-        experiment_unique_id = f"{created_timestamp}-{random_suffix}"#-{digest}"
+        experiment_unique_id = f"{created_timestamp}-{digest}-{random_suffix}"
         logger.info(
             f'Made unique identifier for experiment: "{experiment_unique_id}"'
         )
@@ -246,7 +245,7 @@ class BaseExperiment:
         # TODO: Determine wherelse `nonce` and `create_time` are used. Change.
         metadata = {
             "create_time": created_timestamp,
-            "nonce": random_suffix, 
+            "nonce": random_suffix,
             "digest": digest
         }
 
