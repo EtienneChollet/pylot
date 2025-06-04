@@ -80,20 +80,49 @@ def _valid_list_key(key, list_) -> bool:
     return -len(list_) <= key < len(list_)
 
 
-def get_nested(nested_dict, key, sep=None):
-    key = parse_key(key, sep=sep)
-    key_so_far = tuple()
-    d = nested_dict
-    for subkey in key:
-        key_so_far += (subkey,)
-        if isinstance(d, list):
-            if not _valid_list_key(subkey, d):
-                raise KeyError(key_so_far)
-            subkey = int(subkey)
-        if isinstance(d, dict) and subkey not in d:
-            raise KeyError(key_so_far)
-        d = d[subkey]
-    return d
+def get_nested(
+    nested_dict,
+    key: Any,
+    sep: Any = None
+) -> Any:
+    """
+    Retrieve a value from a nested dict/list by `key`.
+
+    Parameters
+    ----------
+    nested_dict : dict or list
+        The container to search.
+    key : str, int, tuple, or list
+        Key or sequence of subkeys.
+    sep : str, optional
+        Separator for string keys.
+
+    Returns
+    -------
+    Any
+        The found value.
+
+    Raises
+    ------
+    KeyError
+        If any subkey is missing or index is invalid.
+    """
+    path = parse_key(key, sep=sep)
+    current = nested_dict
+    so_far: Tuple[Any, ...] = ()
+    for sub in path:
+        so_far += (sub,)
+        if isinstance(current, list):
+            if not _valid_list_key(sub, current):
+                raise KeyError(
+                    f"Invalid index {sub!r} at path {so_far}"
+                )
+            sub = int(sub)
+        if isinstance(current, dict):
+            if sub not in current:
+                raise KeyError(f"Missing key {sub!r} at path {so_far}")
+        current = current[sub]
+    return current
 
 
 def set_nested(nested_dict, key, value, sep=None):
@@ -524,13 +553,13 @@ class ImmutableConfig(HDict):
     -------
     __hash__():
         Returns the hash of the configuration based on its digest.
-    
+
     digest():
         Computes a hexadecimal digest of the internal data.
-    
+
     __setitem__(key, value):
         Disabled. Raises an ImmutableConfigError.
-    
+
     __delitem__(key):
         Disabled. Raises an ImmutableConfigError.
     
