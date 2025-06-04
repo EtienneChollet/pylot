@@ -6,6 +6,9 @@ import random
 from typing import Tuple, Dict, List
 import numpy as np
 
+import importlib
+import functools
+
 from ..util.config import HDict, Config
 from ..util.ioutil import autoload
 from ..util.more_functools import partial
@@ -59,7 +62,8 @@ def generate_fun_name() -> str:
     return f"{adj}-{noun}"
 
 
-def generate_tuid(nonce_length: int = 4) -> Tuple[str, int]:
+def generate_tuid(
+    nonce_length: int = 4) -> Tuple[str, int]:
     """
     Generate time-based unique ID for experiment run directories.
     """
@@ -70,14 +74,38 @@ def generate_tuid(nonce_length: int = 4) -> Tuple[str, int]:
     return now, nonce.upper()
 
 
-def absolute_import(reference):
-    module, _, attr = reference.rpartition(".")
-    if importlib.util.find_spec(module) is not None:
-        module = importlib.import_module(module)
-        if hasattr(module, attr):
-            return getattr(module, attr)
+def absolute_import(reference: str):
+    """
+    Resolve a dotted path to a Python object, including nested attributes.
 
-    raise ImportError(f"Could not import {reference}")
+    Parameters
+    ----------
+    reference : str
+        Dot-separated reference path, e.g. 'thing.DataClass.attrname'.
+
+    Returns
+    -------
+    Any
+        The resolved Python object.
+
+    Raises
+    ------
+    ImportError
+        If any part of the import fails.
+    """
+    parts = reference.split('.')
+
+    # Try importing the longest valid module prefix
+    for i in reversed(range(1, len(parts))):
+        module_path = '.'.join(parts[:i])
+        try:
+            module = importlib.import_module(module_path)
+            # Resolve remaining attributes
+            return functools.reduce(getattr, parts[i:], module)
+        except (ModuleNotFoundError, AttributeError):
+            continue
+
+    raise ImportError(f"Could not import or resolve: {reference}")
 
 
 def eval_config(config):
