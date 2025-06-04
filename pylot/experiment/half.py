@@ -1,6 +1,6 @@
 from pylot.util import to_device
 from pylot.torch.torchlib import torch
-from pylot.experiment import TrainExperiment
+from pylot.experiment.train import TrainExperiment
 
 
 class HalfTE(TrainExperiment):

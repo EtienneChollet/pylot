@@ -2,7 +2,7 @@ import pathlib
 from typing import Optional
 
 from pylot.torch.torchlib import torch
-from .train import TrainExperiment
+from pylot.experiment.train import TrainExperiment
 from ..util import Config, autoload
 
 
