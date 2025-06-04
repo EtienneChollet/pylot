@@ -3,7 +3,7 @@ import hashlib
 from collections.abc import MutableMapping
 
 # from .util import dict_recursive_update, expand_dots, expand_keys
-from ..util import allbut, expand_keys
+from ..util import allbut  # , expand_keys
 
 
 class Config(MutableMapping):
@@ -40,8 +40,8 @@ class Config(MutableMapping):
             cfg = yaml.safe_load(f)
         return Config(cfg)
 
-    def flatten(self):
-        return expand_keys(self.cfg)
+    #def flatten(self):
+    #    return expand_keys(self.cfg)
 
     def dump(self, file):
         with open(file, "w") as f:
