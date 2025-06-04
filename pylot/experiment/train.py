@@ -8,6 +8,10 @@ Example
 >>> exp.run()
 """
 
+__all__ = [
+    'TrainExperiment'
+]
+
 import copy
 import pathlib
 from typing import List
@@ -366,7 +370,7 @@ class TrainExperiment(BaseExperiment):
             following keys: {'model', 'optim', '_epoch'}.
         strict : bool, optional
             Whether to strictly enforce that the keys in the state dictionary
-            match the keys returned by the module’s `state_dict` function.
+            match the keys returned by the module's `state_dict` function.
             Default is True.
 
         Examples
@@ -390,8 +394,10 @@ class TrainExperiment(BaseExperiment):
                 # Restore model or optimizer state
                 if isinstance(x, nn.Module):
                     x.load_state_dict(state_dict, strict=strict)
+
                 elif isinstance(x, torch.optim.Optimizer):
                     x.load_state_dict(state_dict)
+
                 else:
                     raise TypeError(f"Unsupported type {type(x)}")
 
@@ -403,7 +409,7 @@ class TrainExperiment(BaseExperiment):
         """
         Save the current state of the model to a checkpoint `.pt` file.
 
-        This method serializes the model's state to 3 main keys: {'model', 
+        This method serializes the model's state to 3 main keys: {'model',
         'optim' and '_epoch'} representing the model state dict, the optimizer
         state dict, and the current epoch number, respectively. The checkpoint
         is written to the `checkpoints/` subdirectory of the experiment dir.
@@ -602,12 +608,12 @@ class TrainExperiment(BaseExperiment):
             'epoch': epoch,
             f'{phase}_loss': meters_collect['loss'],
             f'{phase}_dice_score': meters_collect['dice_score'],
-            }
+        }
 
         if self.config.get('wandb.track_it', False):
             logger.info(f"\n{wandb_metrics}")
             wandb.log(wandb_metrics)
-    
+
         self.metrics.log(metrics)
 
         return metrics
