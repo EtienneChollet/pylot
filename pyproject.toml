@@ -58,6 +58,9 @@ dependencies = [
     "xxhash",
     "zstd",
     "fastcore",
+    "loguru",
+    "wandb",
+    "pytest"
 ]
 
 requires-python = ">=3.9"

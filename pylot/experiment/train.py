@@ -233,7 +233,10 @@ class TrainExperiment(BaseExperiment):
         """
 
         # Instantiate loss function
-        self.loss_func = eval_config(self.config["loss_func"])
+        loss_config = self.config.get("loss_func", None)
+
+        if loss_config is not None:
+            self.loss_func = eval_config(self.config["loss_func"])
 
     def build_metrics(self):
         """
@@ -625,6 +628,7 @@ class TrainExperiment(BaseExperiment):
         )
 
         yhat = self.model(x)
+        print(x.shape, y.shape, yhat.shape)
         loss = self.loss_func(yhat, y)
 
         if backward:

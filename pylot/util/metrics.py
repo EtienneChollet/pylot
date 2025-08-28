@@ -15,7 +15,7 @@ class MetricsStore:
             path = Path(path)
         self.path = path
 
-    def log(self, *metrics: List[Dict[str, Any]]):
+    def log(self, *metrics: List[Dict[str, Any]]) -> None:
 
         with self.path.open("a") as f:
 

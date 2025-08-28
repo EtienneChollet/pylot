@@ -82,3 +82,7 @@ def test_metrics_property(exp_dir):
 
     assert first_metric_real == first_metric
     assert second_metric_real == second_metric
+
+
+def test_base_from_config(exp_dir: str):
+    exp = base.BaseExperiment.from_config(exp_dir / 'config.yml')

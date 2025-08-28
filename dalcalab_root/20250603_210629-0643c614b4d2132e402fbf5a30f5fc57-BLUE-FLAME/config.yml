@@ -1,0 +1,4 @@
+experiment:
+  seed: 19
+log:
+  root: dalcalab_root

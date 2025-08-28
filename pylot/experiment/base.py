@@ -15,7 +15,7 @@ Examples
 ...         logger.info("Running MyExperiment")
 >>> # Make the configuration for it (can also be from an e.g. `.yml` file)
 >>> config = {'experiment': {'seed': 123}, 'log': {'root': './logs'}}
->>> # Construct the experiment 
+>>> # Construct the experiment
 >>> experiment = MyExperiment.from_config(config)
 >>> experiment.build_callbacks()
 >>> experiment.run()
@@ -44,6 +44,7 @@ from ..util.config import HDict, FHDict, ImmutableConfig, config_digest
 from ..util.ioutil import autosave
 from ..util.libcheck import check_environment
 from ..util.thunder import ThunderDict
+from pylot.experiment.util import get_config, make_experiment_id
 
 
 def eval_callbacks(all_callbacks, experiment):
@@ -140,9 +141,9 @@ class BaseExperiment:
         self.store = ThunderDict(self.path / "store")
 
         # Set the global seed of the experiment for reproducibility
-        seed = self.config.get("experiment.seed", 42)
-        fix_seed(seed)
-        logger.info(f'Fixed global random seed to: {seed}')
+        self.seed = self.config.get("experiment.seed", 42)
+        fix_seed(self.seed)
+        logger.info(f'Fixed global random seed to: {self.seed}')
 
         # Check for optimized packages (e.g. numpy, scikit-learn, ...)
         check_environment()
@@ -193,65 +194,27 @@ class BaseExperiment:
         `pylot_experiments`.
         """
 
-        if isinstance(config, dict):
-            pass
+        # Make/ensure the configuration is an immutable dict
+        config = get_config(
+            config=config,
+            logger=logger,
+        )
 
-        # Convert HDict to dict if necessary
-        elif isinstance(config, HDict):
-            config = config.to_dict()
-
-        elif isinstance(config, (str, pathlib.Path)):
-            config = ImmutableConfig.from_file(config).to_dict()
-
-        else:
-            logger.error(
-                'Do not know how to handle config with passed config of type '
-                f'{type(config)}'
-            )
-
-        # Make a default root for the experiment
-        default_experiment_root = 'pylot_experiments'
-
-        # Make sure there's a valid root directory for the experiments
-        if "log" not in config:
-            # Set the root
-            config["log"] = {"root": default_experiment_root}
-
-        if "root" not in config["log"]:
-            config['log']['root'] = default_experiment_root
+        # Get the unique ID of the experiment
+        experiment_unique_id, metadata = make_experiment_id(
+            config=config,
+            logger=logger,
+        )
 
         # Determine base folder for experiments
         experiments_root = pathlib.Path(config['log']['root'])
 
-        # Log the root path of the experiments
-        logger.info(
-            'Root directory for experiments located at: '
-            f'"{experiments_root}"'
-        )
-
-        # Generate names for unique identifier of experimental run
-        created_timestamp, random_suffix = generate_tuid()
-        digest = config_digest(config)
-
-        # Generate the (unique) name for the experiment run.
-        experiment_unique_id = f"{created_timestamp}-{digest}-{random_suffix}"
-        logger.info(
-            f'Made unique identifier for experiment: "{experiment_unique_id}"'
-        )
-
         # Construct the path to the experiment run
         experiment_dir = experiments_root / experiment_unique_id
 
-        # TODO: Determine wherelse `nonce` and `create_time` are used. Change.
-        metadata = {
-            "create_time": created_timestamp,
-            "nonce": random_suffix,
-            "digest": digest
-        }
-
         # TODO: document `autosave`
         autosave(metadata, experiment_dir / "metadata.json")
-        autosave(config, experiment_dir / "config.yml")
+        autosave(config.to_dict(), experiment_dir / "config.yml")
 
         class_instance = cls(
             path=str(experiment_dir.absolute()),

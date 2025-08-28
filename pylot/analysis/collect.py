@@ -88,12 +88,13 @@ class ResultsLoader:
             f'ResultsLoader is loading results for the unix user: {unixname}'
         )
 
-        # Determine the 
+        # Determine the cache file location
         if cache_file is None:
             cache_file = f"/tmp/{unixname}-results.diskcache"
             logger.debug(
                 'No results cache file specified to ResultsLoader constructor.'
-                f' Defaulting to cache file found at {cache_file}')
+                f' Defaulting to cache file found at {cache_file}'
+            )
 
         # Initialize disk cache and worker count
         self._cache = FileCache(cache_file)
@@ -102,6 +103,7 @@ class ResultsLoader:
     def load_configs(
         self,
         *paths: Union[str, pathlib.Path],
+        patterns_to_keep: Union[str, List[str]] = None,
         shorthand: bool = True,
         properties: bool = False,
         metadata: bool = False,
@@ -110,10 +112,10 @@ class ResultsLoader:
         categories: bool = False,
     ) -> pd.DataFrame:
         """
-        Load and flatten a YAML configuration files from experiment folders.
+        Load and flatten YAML configuration files from experiment folders.
 
         This method loads the YAML configuration files associated with each
-        exoperimental run and flattens them so there is one entry per key.
+        experimental run and flattens them so there is one entry per key.
 
         Parameters
         ----------
@@ -144,7 +146,7 @@ class ResultsLoader:
         >>> # Specify directory to folder containing all pylot experiments
         >>> experiment_root = 'pylot_experiments'
         >>> # Load the flattened config files
-        >>> df = loader.load_configs(path)
+        >>> df = loader.load_configs(experiment_root)
         >>> df.keys()
         Index(['epochs', 'model', 'in_channels', 'out_channels', 'ndim'])
         """
@@ -153,9 +155,9 @@ class ResultsLoader:
         paths = list(dict.fromkeys(paths))
 
         for p in paths:
+
             # Ensure all paths are valid
             if not isinstance(p, (str, pathlib.Path)):
-
                 # Make error message
                 error_message = (
                     f"Invalid experiment path: {p}: each entry must be a str "
@@ -172,6 +174,18 @@ class ResultsLoader:
                 pathlib.Path(path).iterdir() for path in paths
             )
         )
+
+        if patterns_to_keep is not None:
+
+            if isinstance(patterns_to_keep, (str, pathlib.Path)):
+                patterns_to_keep = [patterns_to_keep]
+
+            folders = [
+                folder for folder in folders
+                if any(pattern in str(folder) for pattern in patterns_to_keep)
+            ]
+
+        print(folders)
 
         # Load each config in parallel via cache
         configs = self._cache.gets(

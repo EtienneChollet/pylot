@@ -1,9 +1,14 @@
+__all__ = [
+    'ensure_rootdir_in_config',
+    'get_config',
+    'make_experiment_id',
+]
+
 import datetime
 import random
 import importlib
 import pathlib
-import random
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict, List, Union
 import numpy as np
 
 import importlib
@@ -13,6 +18,7 @@ from ..util.config import HDict, Config
 from ..util.ioutil import autoload
 from ..util.more_functools import partial
 from pylot.torch.torchlib import torch
+from pylot.util.config import HDict, ImmutableConfig, config_digest
 
 
 def fix_seed(seed):
@@ -30,7 +36,7 @@ _ADJECTIVES: List[str] = [
     "kind", "lazy", "mean", "nice", "open", "pure", "rich", "soft",
     "true", "wild", "zero", "blue", "fast", "grey", "long", "pink",
     "red", "slow", "silly", "brave", "fiery", "chill", "fun", "smart",
-    "witty", "happy", "bad", "old", "mad", 
+    "witty", "happy", "bad", "old", "mad",
 ]
 
 _NOUNS: List[str] = [
@@ -63,7 +69,8 @@ def generate_fun_name() -> str:
 
 
 def generate_tuid(
-    nonce_length: int = 4) -> Tuple[str, int]:
+    nonce_length: int = 4
+) -> Tuple[str, int]:
     """
     Generate time-based unique ID for experiment run directories.
     """
@@ -165,3 +172,83 @@ def path_from_job(job):
 
 def config_from_job(job):
     return config_from_path(path_from_job(job))
+
+
+def ensure_rootdir_in_config(
+    config: Union[dict, HDict, str, pathlib.Path],
+    experiment_rootdir: str = 'pylot_experiments',
+    logger=None,
+) -> HDict:
+    """
+    Ensure the root directory exists in the configuration dictionary
+    """
+
+    # Make sure there's a valid root directory for the experiments
+    if "log" not in config:
+        # Set the root
+        config["log"] = {"root": experiment_rootdir}
+
+    if "root" not in config["log"]:
+        config['log.root'] = experiment_rootdir
+
+    if logger is not None:
+        # Log the root path of the experiments
+        logger.info(
+            'Root directory for experiments located at: '
+            f'{config.get("log.root")}'
+        )
+
+    return config
+
+
+def get_config(
+    config: Union[dict, HDict, str, pathlib.Path],
+    experiment_rootdir: str = 'pylot_experiments',
+    logger=None,
+) -> HDict:
+
+    if isinstance(config, (dict, ImmutableConfig)):
+        config = HDict(config)
+
+    elif isinstance(config, (str, pathlib.Path)):
+        config = HDict.from_file(config)
+
+    else:
+        if logger is not None:
+            logger.error(
+                'Do not know how to handle config with passed config of type '
+                f'{type(config)}'
+            )
+
+    # some other processing...
+    config = ensure_rootdir_in_config(
+        config=config,
+        experiment_rootdir=experiment_rootdir,
+    )
+
+    return ImmutableConfig(config)
+
+
+def make_experiment_id(
+    config: Union[dict, HDict, str, pathlib.Path],
+    logger=None,
+):
+    # Generate names for unique identifier of experimental run
+    created_timestamp, random_suffix = generate_tuid()
+    digest = config_digest(config.to_dict())
+
+    # Generate the (unique) name for the experiment run.
+    make_experiment_id = f"{created_timestamp}-{digest}-{random_suffix}"
+
+    if logger is not None:
+        logger.info(
+            f'\nMade unique identifier for experiment: "{make_experiment_id}"'
+        )
+
+    metadata = {
+        "create_time": created_timestamp,
+        "nonce": random_suffix,
+        "digest": digest
+    }
+
+    return make_experiment_id, metadata

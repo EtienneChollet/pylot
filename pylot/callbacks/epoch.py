@@ -164,7 +164,6 @@ class ModelCheckpoint:
         phase: str = "val",
         save_freq: int = 1,
     ):
-
         self.phase = phase
         self.experiment = experiment
         self.monitor = monitor
