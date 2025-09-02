@@ -42,7 +42,7 @@ dependencies = [
 #    "Pympler",
     "PyYAML",
     "rich",
-#     "s3fs",
+    "s3fs",
     "scikit-learn",
     "scipy",
     "seaborn",
