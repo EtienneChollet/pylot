@@ -338,7 +338,7 @@ class TrainExperiment(BaseExperiment):
             following keys:
             - "model": the state dict of the model (`state_dict()`).
             - "optim": the state dict of the optimizer (`state_dict()`).
-            - "_epoch": the current epoch value from `self.properties`.
+            - "_epoch": the current epoch value from `self._epoch`.
 
         Examples
         --------
@@ -349,7 +349,7 @@ class TrainExperiment(BaseExperiment):
         return {
             "model": self.model.state_dict(),       # Serialized model weights
             "optim": self.optim.state_dict(),       # Serialized optimizer
-            "_epoch": self.properties["epoch"],     # Last/current epoch
+            "_epoch": self._epoch,     # Last/current epoch
         }
 
     def set_state(

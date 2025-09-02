@@ -212,12 +212,16 @@ class ModelCheckpoint:
             self._have_to_save = True
 
         if epoch % self.save_freq == 0 and self._have_to_save:
-            if not (self.experiment.path / "checkpoints").exists(): 
-                (self.experiment.path / "checkpoints").mkdir(parents=True, exist_ok=True)
-            with (self.experiment.path / f"checkpoints/{tag}.pt").open("wb") as f:
-                logger.info(f"Saving model with {tag}")
+
+            checkpoint_dir = self.experiment.path / "checkpoints"
+            if not checkpoint_dir.exists():
+                checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+            with (checkpoint_dir / f"{tag}.pt").open("wb") as f:
                 torch.save(self._best_state, f)
-                self._have_to_save = False
+
+            logger.info(f"Checkpointing with tag:{tag} at epoch:{self._best_state['_epoch']}")
+            self._have_to_save = False
 
 
 def JobProgress(experiment):
