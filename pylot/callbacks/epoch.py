@@ -106,7 +106,7 @@ class ETA:
             except ValueError:
                 return
             remain = eta - datetime.now()
-            remain = self.strfdelta(remain, "{hours:02d}:{minutes:02d}:{seconds:02d}")
+            remain = self.strfdelta(remain, "{days:02d}-{hours:02d}:{minutes:02d}:{seconds:02d}")
             perepoch = self.strfdelta(time_per_epoch, "{hours:02d}:{minutes:02d}:{seconds:02d}.{milliseconds:03d}")
             N = self.n_steps
 
@@ -148,7 +148,8 @@ class ETA:
     @staticmethod
     def strfdelta(tdelta, fmt):
         d = {}
-        d["hours"], rem = divmod(int(1_000*tdelta.total_seconds()), 1_000*3_600)
+        d["days"], rem = divmod(int(1_000*tdelta.total_seconds()), 1_000*86_400)
+        d["hours"], rem = divmod(rem, 1_000*3_600)
         d["minutes"], rem2 = divmod(rem, 1_000*60)
         d["seconds"], d["milliseconds"] = divmod(rem2, 1_000)
         return fmt.format(**d)
