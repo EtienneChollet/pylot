@@ -375,6 +375,8 @@ class TrainExperiment(BaseExperiment):
             Whether to strictly enforce that the keys in the state dictionary
             match the keys returned by the module's `state_dict` function.
             Default is True.
+        compiled: bool, optional
+            Whether to load the compiled weights or not. Default is True.
 
         Examples
         --------
@@ -396,6 +398,17 @@ class TrainExperiment(BaseExperiment):
 
                 # Restore model or optimizer state
                 if isinstance(x, nn.Module):
+                    if self.compiled:
+                        # Loading onto compiled model - add prefix if missing
+                        for key in list(state_dict.keys()):
+                            if not key.startswith('_orig_mod.'):
+                                state_dict['_orig_mod.' + key] = state_dict.pop(key)
+                    else:
+                        # Loading onto non-compiled model - REMOVE prefix
+                        for key in list(state_dict.keys()):
+                            if key.startswith('_orig_mod.'):
+                                state_dict[key.replace('_orig_mod.', '')] = state_dict.pop(key)
+                    
                     x.load_state_dict(state_dict, strict=strict)
 
                 elif isinstance(x, torch.optim.Optimizer):
@@ -506,7 +519,7 @@ class TrainExperiment(BaseExperiment):
 
         # Log the successful load
         logger.info(
-            f"Loaded checkpoint with tag:{tag}. "
+            f"Loaded checkpoint with tag:{tag} from epoch {self._epoch}. "
             f"Last epoch:{self.properties['epoch']}"
         )
 
