@@ -16,8 +16,9 @@ def setup_loguru():
         filter=lambda record: record["level"].no == 20  # Only INFO level
     )
 
-    # Everything (including INFO) → stderr (.err)
+    # Everything except INFO → stderr (.err)
     logger.add(
         sys.stderr,
-        level="DEBUG"
+        level="DEBUG",
+        filter=lambda record: record["level"].no != 20  # Exclude INFO level
     )
