@@ -6,7 +6,7 @@ class CUDACachedDataset(Dataset):
     def __init__(self, dataset: Dataset):
         assert torch.cuda.is_available()
         self._dataset = dataset
-        self._cache = [to_device(i, "cuda") for i in self._dataset]
+        self._cache = [to_device(i, "cuda", ignore_errors=True) for i in self._dataset]
 
     def __getitem__(self, idx):
         return self._cache[idx]

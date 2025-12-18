@@ -41,7 +41,7 @@ def _extract_tar_info(tarfile, prefix=None):
     return tarinfo_and_targets
 
 
-class ImageFolderTar(data.Dataset):
+class ImageFolderTar(Dataset):
     def __init__(self, root, transform=None, prefix=None, index=None):
 
         assert os.path.isfile(root)

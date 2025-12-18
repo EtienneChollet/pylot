@@ -520,7 +520,8 @@ class TrainExperiment(BaseExperiment):
         # Log the successful load
         logger.info(
             f"Loaded checkpoint with tag:{tag} from epoch {self._epoch}. "
-            f"Last epoch:{self.properties['epoch']}"
+            # f"Last epoch:{self.properties['epoch']}" 
+            # # can causes errors if multiple processes are trying to read at same time
         )
 
         return self

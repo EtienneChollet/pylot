@@ -79,7 +79,9 @@ def _inputs_as_onehot(
         y_true = y_true.reshape(batch_size, -1)
         y_true = F.one_hot(y_true, num_classes).permute(0, 2, 1)
 
-    assert y_pred.shape == y_true.shape
+    assert y_pred.shape == y_true.shape, \
+        f"Got y_pred={y_pred.shape} and y_true={y_true.shape}"
+    
     return y_pred.float(), y_true.float()
 
 

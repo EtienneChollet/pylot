@@ -8,6 +8,12 @@ import shutil
 from abc import ABC
 from contextlib import contextmanager
 from typing import Any, Union
+import fcntl
+import time
+
+import random
+from random import randint
+import shutil
 
 import lz4.frame
 import msgpack
@@ -159,6 +165,9 @@ class PtFormat(FileFormat):
         return torch.load(fp)
 
 
+import random
+from random import randint
+import shutil
 class YamlFormat(FileFormat):
 
     EXTENSIONS = [".yaml", ".YAML", ".yml", ".YML"]
@@ -178,10 +187,21 @@ class YamlFormat(FileFormat):
             yaml.safe_dump(obj, f, sort_keys=False)
 
     @classmethod
-    def load(cls, fp) -> object:
+    def load(cls, fp, max_retries=5, retry_delay=0.05) -> object:
         fp = cls.check_fp(fp)
-        with fp.open("r") as f:
-            return yaml.safe_load(f)
+        # Retry logic to handle issues from multiple processes reading simultaneously
+        for attempt in range(max_retries):
+            try:
+                with fp.open("r") as f:
+                    content = f.read()
+                    if not content.strip():
+                        raise ValueError("Empty file")
+                    return yaml.safe_load(content)
+            except (yaml.YAMLError, ValueError, IOError, OSError) as e:
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay * (2 ** attempt))
+                else:
+                    raise Exception(f"Failed to load YAML from {fp} after {max_retries} attempts: {e}")
 
 
 class NumpyJSONEncoder(json.JSONEncoder):
@@ -216,11 +236,22 @@ class JsonFormat(FileFormat):
             json.dump(obj, f, cls=NumpyJSONEncoder)
 
     @classmethod
-    def load(cls, fp) -> object:
+    def load(cls, fp, max_retries=5, retry_delay=0.05) -> object:
         fp = cls.check_fp(fp)
-        with fp.open("r") as f:
-            return json.load(f)
-
+        # Retry logic to handle issues from multiple processes reading simultaneously
+        for attempt in range(max_retries):
+            try:
+                with fp.open("r") as f:
+                    content = f.read()
+                    if not content.strip():
+                        raise ValueError("Empty file")
+                    return json.loads(content)
+            except (json.JSONDecodeError, ValueError, IOError, OSError) as e:
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay * (2 ** attempt))  # Exponential backoff
+                else:
+                    raise Exception(f"Failed to load JSON from {fp} after {max_retries} attempts: {e}")
+                
 
 class JsonlFormat(FileFormat):
 
