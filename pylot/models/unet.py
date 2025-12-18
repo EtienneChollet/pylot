@@ -82,12 +82,15 @@ class UNet(nn.Module):
 
         conv_outputs = []
 
+        # Select correct max_pool based on dims
+        max_pool_fn = [F.max_pool1d, F.max_pool2d, F.max_pool3d][self.dims - 1]
+
         for i, conv_block in enumerate(self.down_blocks):
             x = conv_block(x)
             if i == len(self.down_blocks) - 1:
                 break
             conv_outputs.append(x)
-            x = F.max_pool2d(x, 2)
+            x = max_pool_fn(x, 2)
 
         for i, conv_block in enumerate(self.up_blocks, start=1):
             x = F.interpolate(
