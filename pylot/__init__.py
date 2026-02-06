@@ -69,4 +69,4 @@ from .optim import *
 from .pandas import *
 from .plot import *
 from .torch import *
-from .util import *
+# from .util import * # causes namespace collision with metrics
