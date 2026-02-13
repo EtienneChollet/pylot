@@ -46,7 +46,9 @@ mind.
 """
 
 from . import analysis
+from . import augmentation
 from . import callbacks
+from . import datasets
 from . import experiment
 from . import loss
 from . import metrics
@@ -59,7 +61,9 @@ from . import torch
 from . import util
 
 from .analysis import *
+from .augmentation import *
 from .callbacks import *
+from .datasets import *
 from .experiment import *
 from .loss import *
 from .metrics import *
