@@ -37,9 +37,19 @@ def groupby_mode_nonum(
     these columns around using the mode
     """
 
+    # Convert categorical columns in groupby to string to avoid pandas issues with
+    # as_index=False and unobserved categories
+    df = df.copy()
+    for col in groupby:
+        if pd.api.types.is_categorical_dtype(df[col]):
+            df[col] = df[col].astype(str)
+
     def str_agg(col):
         if col.nunique(dropna=False) == 1:
-            return col.mode()
+            mode_vals = col.mode()
+            if len(mode_vals) > 0:
+                return mode_vals.iloc[0]
+            return col.dropna().iloc[0] if len(col.dropna()) > 0 else None
         if enforce_unique_str:
             raise ValueError(f"Multiple values for col {col.name} {col.unique()}")
         return multiple_token
