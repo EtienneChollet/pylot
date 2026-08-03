@@ -24,7 +24,7 @@ class ChannelNorm(nn.LayerNorm):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = E.rearrange(x, "B C ... -> B ... C")
-        super().forward(x)
+        x = super().forward(x)
         x = E.rearrange(x, "B ... C -> B C ...")
         return x
 
