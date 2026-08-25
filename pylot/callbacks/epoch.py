@@ -192,10 +192,18 @@ class ModelCheckpoint:
         # if epoch % self.save_freq != 0:
         #     return
         metrics = self.experiment.metrics.df
+        quantity = self.monitor
+        if quantity not in metrics.columns:
+            # The monitored metric has not been logged yet, so there is nothing
+            # to select a best checkpoint on. This is the state every resume is
+            # in until the run's next eval epoch when the monitor is a val-only
+            # key: resuming truncates metrics.jsonl to `epoch < last_epoch`, so
+            # a resume from an epoch at or before the first eval epoch leaves NO
+            # val rows and the column simply does not exist — indexing it raised
+            # a KeyError here and killed the resumed job on its first epoch.
+            return
         metrics = metrics[metrics.phase == self.phase]
         history = metrics[metrics.epoch < epoch]
-
-        quantity = self.monitor
 
         tag = f"{self.mode}-{self.phase}-{quantity}"
 
