@@ -26,7 +26,7 @@ from ..util.ioutil import autosave
 from ..util.meter import MeterDict
 from ..util.torchutils import to_device
 from .base import BaseExperiment
-from .util import absolute_import, eval_config
+from .util import absolute_import, eval_config, rewind_lr_scheduler
 
 
 class TrainExperiment(BaseExperiment):
@@ -323,13 +323,13 @@ class TrainExperiment(BaseExperiment):
     @property
     def state(self):
         """
-        The current state of the model, optimizer, and epoch number.
+        The current state of the model, optimizer, LR schedule and epoch.
 
         This property constructs and returns a dictionary representing the
         current training state, including the model's state dict (its
-        parameters), the optimizer state dict, and the current epoch. It is
-        intended for use in checkpointing, saving, and restoring training
-        progress.
+        parameters), the optimizer state dict, the LR scheduler's position in
+        its schedule, and the current epoch. It is intended for use in
+        checkpointing, saving, and restoring training progress.
 
         Returns
         -------
@@ -340,16 +340,31 @@ class TrainExperiment(BaseExperiment):
             - "optim": the state dict of the optimizer (`state_dict()`).
             - "_epoch": the current epoch value from `self._epoch`.
 
+            The LR schedule is not among them: `set_state` reconstructs its
+            position from "_epoch" instead of restoring a saved one.
+
         Examples
         --------
         >>> state = trainer.state
         >>> torch.save(state, "checkpoint.pt")
         """
 
+        # The LR schedule is deliberately NOT stored. Its position is
+        # reconstructed on resume from `_epoch` — see `_restore_lr_schedule`.
+        # Saving it would work too, but `LRScheduler.load_state_dict` restores
+        # `T_max` / `eta_min` / `base_lrs` along with the position, which would
+        # make a run dir's `config.yml` dead for those keys from the first
+        # checkpoint onward.
         return {
             "model": self.model.state_dict(),       # Serialized model weights
             "optim": self.optim.state_dict(),       # Serialized optimizer
-            "_epoch": self._epoch,     # Last/current epoch
+            # Number of epochs COMPLETED, not the 0-based index of the last
+            # one. `epoch-100.pt` holds `_epoch == 100`.
+            "_epoch": self._epoch,
+            # Tells `set_state` which of the two conventions `_epoch` is in.
+            # Checkpoints written before 2026-08-27 carry no such key and hold
+            # the 0-based INDEX, which is one less; they are converted on load.
+            "_epoch_is_count": True,
         }
 
     def set_state(
@@ -358,19 +373,22 @@ class TrainExperiment(BaseExperiment):
         strict: bool = True,
     ):
         """
-        Restore the model and optimizer state from a checkpoint dictionary.
+        Restore the model, optimizer and LR schedule from a checkpoint dict.
 
-        This method updates the internal state of the model and optimizer
-        using the provided `state` dictionary (from a checkpoint). It supports
-        restoring `torch.nn.Module` and `torch.optim.Optimizer` objects by
-        calling their `load_state_dict` methods. The training epoch is
-        also updated from the checkpoint metadata.
+        This method updates the internal state of the model, the optimizer and
+        the LR scheduler using the provided `state` dictionary (from a
+        checkpoint). It supports restoring `torch.nn.Module` and
+        `torch.optim.Optimizer` objects by calling their `load_state_dict`
+        methods. The training epoch is also updated from the checkpoint
+        metadata.
 
         Parameters
         ----------
         state : dict
             A dictionary obtained from a checkpoint file. It must include the
-            following keys: {'model', 'optim', '_epoch'}.
+            following keys: {'model', 'optim', '_epoch'}. An 'lr_scheduler'
+            key, written by a narrow range of checkpoints, is ignored — the
+            schedule's position is reconstructed from '_epoch'.
         strict : bool, optional
             Whether to strictly enforce that the keys in the state dictionary
             match the keys returned by the module's `state_dict` function.
@@ -394,7 +412,15 @@ class TrainExperiment(BaseExperiment):
             if not attr.startswith("_"):
 
                 # Get correct instance attr (e.g., self.model or self.optim)
-                x = getattr(self, attr)
+                x = getattr(self, attr, None)
+
+                # Ignore a scheduler state dict from a checkpoint written
+                # while `state` briefly persisted one. The position is
+                # reconstructed below instead, so loading it here would only
+                # pin `T_max` / `eta_min` to that checkpoint. Skipped rather
+                # than rejected so those checkpoints still load.
+                if attr == "lr_scheduler":
+                    continue
 
                 # Restore model or optimizer state
                 if isinstance(x, nn.Module):
@@ -417,9 +443,93 @@ class TrainExperiment(BaseExperiment):
                 else:
                     raise TypeError(f"Unsupported type {type(x)}")
 
-        # Restore epoch-related metadata
-        self._checkpoint_epoch = state["_epoch"]
-        self._epoch = state["_epoch"]
+        # Restore epoch-related metadata. `_epoch` counts epochs COMPLETED.
+        # A checkpoint without the marker predates that convention and stores
+        # the 0-based INDEX of the last completed epoch, which is one lower.
+        # Reading it as a count would re-run that epoch and leave the LR
+        # schedule a full epoch behind, so convert rather than trust it.
+        epochs_completed = state["_epoch"]
+        if not state.get("_epoch_is_count", False):
+            epochs_completed += 1
+        self._checkpoint_epoch = epochs_completed
+        self._epoch = epochs_completed
+
+        # Now that the epoch is known, put the LR schedule back where it was.
+        self._restore_lr_schedule()
+
+    def _lr_schedule_position(self, epochs_completed: int):
+        """How many `lr_scheduler.step()` calls `epochs_completed` epochs imply.
+
+        `_epoch` counts the epochs that have COMPLETED, so it is already the
+        number of them and needs no `+ 1`. What one epoch is worth depends on
+        `lr_scheduler_step_on`, which the subclass that builds the scheduler
+        also sets:
+
+        * ``"epoch"`` — one step per epoch.
+        * ``"batch"`` — one step per optimizer step, so one train dataloader's
+          worth per epoch.
+
+        Returns None when the answer is not knowable here — a batch-stepped
+        schedule with no train dataloader built yet, as in the eval entry
+        points that call `set_state` outside a training run.
+        """
+        step_on = getattr(self, "lr_scheduler_step_on", None) or "epoch"
+
+        if step_on == "epoch":
+            return epochs_completed
+
+        train_dl = getattr(self, "train_dl", None)
+        if train_dl is None:
+            return None
+        return epochs_completed * len(train_dl)
+
+    def _restore_lr_schedule(self):
+        """Put the LR schedule back where the completed epochs left it.
+
+        Called on every `--resume`. Without it the schedule silently restarts:
+        `build_optim` builds a fresh scheduler at step 0, and although
+        `set_state` restores the optimizer's `lr`, `CosineAnnealingLR`'s
+        recursive `get_lr` then treats that restored `lr` as its new PEAK and
+        sweeps a whole fresh `T_max` from it. There is no visible seam at the
+        boundary — the curve just tracks a shallower cosine and never reaches
+        `eta_min`. A 500-epoch cosine broken over three resume windows ends
+        near a quarter of the base LR instead.
+
+        Reconstructing rather than restoring a saved position is what keeps a
+        run dir's `config.yml` authoritative for `T_max` and `eta_min`, and it
+        repairs checkpoints written before any of this existed.
+        """
+        scheduler = getattr(self, "lr_scheduler", None)
+        if scheduler is None:
+            return
+
+        steps = self._lr_schedule_position(self._epoch)
+        if steps is None:
+            logger.warning(
+                "LR schedule not restored: `lr_scheduler_step_on` is 'batch' "
+                "but no train dataloader is built, so the number of optimizer "
+                "steps behind epoch "
+                f"{self._epoch} is unknown. Build the dataloader before "
+                "loading if this is a training run — otherwise the schedule "
+                "restarts from step 0."
+            )
+            return
+
+        if not rewind_lr_scheduler(self.optim, scheduler, steps):
+            logger.warning(
+                f"LR schedule not restored: {type(scheduler).__name__} has no "
+                "closed form, so its position cannot be derived from the epoch "
+                "count (it depends on metric history, not on time). It will "
+                "restart from step 0."
+            )
+            return
+
+        logger.info(
+            f"LR schedule restored to step {steps} "
+            f"({self._epoch} epochs x "
+            f"{getattr(self, 'lr_scheduler_step_on', 'epoch')}): "
+            f"lr={self.optim.param_groups[0]['lr']:.6e}"
+        )
 
     def checkpoint(self, tag: str = 'last'):
         """
@@ -549,11 +659,26 @@ class TrainExperiment(BaseExperiment):
 
         if last_epoch >= 0:
             self.load(tag="last")
+            # Re-read it from the loaded state rather than trusting
+            # `properties`: `set_state` converts a pre-2026-08-27 checkpoint's
+            # 0-based `_epoch` into a count of completed epochs, and it is that
+            # count the loop below continues from.
+            last_epoch = self._epoch
             df = self.metrics.df
-            autosave(df[df.epoch < last_epoch], self.path / "metrics.jsonl")
+            # `<=`, not `<`. `last_epoch` is the epoch the checkpoint COMPLETED —
+            # `checkpoint()` runs after the epoch body — and the loop below restarts at
+            # `last_epoch + 1`, so that epoch is never re-run and its row is valid.
+            # Dropping it punched a one-row hole in metrics.jsonl at every resume
+            # (CALM-TOP: epochs 294 and 303), and on a run that had already finished it
+            # deleted the FINAL epoch outright — which is why that run's metrics stop at
+            # 499 while its optimizer state and `epoch-500.pt` both show epoch 500 ran.
+            # What must go is only what will be redone: rows ABOVE `last_epoch`.
+            autosave(df[df.epoch <= last_epoch], self.path / "metrics.jsonl")
 
         else:
             self.build_initialization()
+            # Nothing has been trained yet, so zero epochs are complete.
+            last_epoch = 0
 
         self.to_device()
         self.optim.zero_grad()
@@ -561,14 +686,21 @@ class TrainExperiment(BaseExperiment):
         checkpoint_freq: int = self.config.get("log.checkpoint_freq", 1)
         eval_freq: int = self.config.get("train.eval_freq", 1)
 
-        for epoch in range(last_epoch + 1, epochs):
+        # `epoch` COUNTS epochs, 1..epochs — it is not a 0-based index. Every
+        # period in this loop, and every `epoch` value logged to
+        # `metrics.jsonl` or read by a callback, is therefore "epochs trained
+        # so far", the same quantity a milestone checkpoint is named for. With
+        # `eval_freq: 10` the evals land after the 10th, 20th, ... epoch, and
+        # the last one falls on `epochs` itself whenever `eval_freq` divides
+        # the budget.
+        for epoch in range(last_epoch + 1, epochs + 1):
 
             logger.info(f"Start epoch {epoch}")
 
             self._epoch = epoch
             self.run_phase("train", epoch)
 
-            if eval_freq > 0 and (epoch % eval_freq == 0 or epoch == epochs - 1):
+            if eval_freq > 0 and (epoch % eval_freq == 0 or epoch == epochs):
                 self.run_phase("val", epoch)
 
             if checkpoint_freq > 0 and epoch % checkpoint_freq == 0:

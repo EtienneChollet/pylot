@@ -84,14 +84,16 @@ def LogExpr(experiment, **exprs):
 class ETA:
     def __init__(self, experiment, n_steps=None, print_freq=1, gamma=0.9):
         if n_steps is None:
-            n_steps = experiment.config["train.epochs"] - 1
+            # `epoch` counts epochs completed, 1..train.epochs.
+            n_steps = experiment.config["train.epochs"]
         self.n_steps = n_steps
-        self.timestamps = [None for _ in range(n_steps)]
+        # Indexed directly by the 1-based epoch count; slot 0 stays unused.
+        self.timestamps = [None for _ in range(n_steps + 1)]
         self.print_freq = print_freq
         self.gamma = gamma
 
     def __call__(self, epoch):
-        if epoch >= self.n_steps:
+        if epoch > self.n_steps:
             logger.info("Done!")
 
             return
@@ -197,7 +199,7 @@ class ModelCheckpoint:
             # The monitored metric has not been logged yet, so there is nothing
             # to select a best checkpoint on. This is the state every resume is
             # in until the run's next eval epoch when the monitor is a val-only
-            # key: resuming truncates metrics.jsonl to `epoch < last_epoch`, so
+            # key: resuming truncates metrics.jsonl to `epoch <= last_epoch`, so
             # a resume from an epoch at or before the first eval epoch leaves NO
             # val rows and the column simply does not exist — indexing it raised
             # a KeyError here and killed the resumed job on its first epoch.
@@ -245,7 +247,8 @@ def JobProgress(experiment):
 
         def JobProgessCallback(epoch):
             if job:
-                job.update_progress(round((epoch + 1) / total, 4))
+                # `epoch` already counts epochs completed.
+                job.update_progress(round(epoch / total, 4))
 
         return JobProgessCallback
 

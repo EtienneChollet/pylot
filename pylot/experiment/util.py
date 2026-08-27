@@ -252,3 +252,65 @@ def make_experiment_id(
     }
 
     return make_experiment_id, metadata
+
+
+def rewind_lr_scheduler(optim, scheduler, steps: int) -> bool:
+    """Move `scheduler` to the state it would hold after `steps` `.step()` calls.
+
+    Used on `--resume` to put the LR schedule back where the completed epochs
+    left it. The position is RECONSTRUCTED from the closed form rather than
+    restored from a saved `state_dict`, which matters for two reasons:
+
+    * A checkpoint written before this existed still resumes onto the right
+      curve — the position is derived from the epoch count, which every
+      checkpoint has always carried.
+    * The schedule's hyperparameters keep coming from the config, so editing
+      `T_max` or `eta_min` in a run dir's `config.yml` still takes effect on the
+      next resume. Restoring a saved `state_dict` would overwrite them (it does
+      `self.__dict__.update(state_dict)`), silently pinning the schedule to
+      whatever the first checkpoint was written with.
+
+    `base_lrs` is deliberately left as `build_optim` captured it — from the
+    config's `optim.lr`, not from the `initial_lr` the checkpoint's optimizer
+    state carries — for that same reason.
+
+    Accurate to ~1e-13 relative against an uninterrupted run. The residual is
+    float64 rounding in torch's own recursive `get_lr`, which accumulates over
+    hundreds of thousands of steps; the closed form used here is the more exact
+    of the two.
+
+    Parameters
+    ----------
+    optim : torch.optim.Optimizer
+        The optimizer whose `param_groups` the schedule drives.
+    scheduler : torch.optim.lr_scheduler.LRScheduler
+        The freshly built scheduler to reposition, still at step 0.
+    steps : int
+        Number of `.step()` calls the schedule should have behind it.
+
+    Returns
+    -------
+    bool
+        True if the schedule was repositioned. False for a scheduler with no
+        closed form — `ReduceLROnPlateau` and friends, whose position depends
+        on metric history that no amount of epoch arithmetic reconstructs. The
+        caller is expected to warn rather than pretend the resume was clean.
+    """
+    # `_get_closed_form_lr` is the only general way to ask a torch scheduler
+    # "what would you be at step N". Schedulers that do not define it are
+    # path-dependent by construction.
+    if steps < 0 or not hasattr(scheduler, "_get_closed_form_lr"):
+        return False
+
+    scheduler.last_epoch = steps
+    # `step()` increments `_step_count` before reading `get_lr`, so after N real
+    # steps it sits at N + 1. Setting it here keeps the next `step()` on the
+    # ordinary recursive branch instead of the `_step_count == 1` special case,
+    # which would re-derive from the closed form and land one step late.
+    scheduler._step_count = steps + 1
+
+    values = scheduler._get_closed_form_lr()
+    for group, lr in zip(optim.param_groups, values):
+        group["lr"] = lr
+    scheduler._last_lr = list(values)
+    return True
