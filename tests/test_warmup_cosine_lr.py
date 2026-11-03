@@ -10,7 +10,7 @@ import math
 import pytest
 import torch
 
-from pylot.experiment.util import rewind_lr_scheduler
+from pylot.experiment.util import absolute_import, rewind_lr_scheduler
 from pylot.optim.scheduler import WarmupCosineLR
 
 BASE_LR = 1e-4
@@ -81,3 +81,8 @@ def test_rewind_matches_an_uninterrupted_run(steps):
         sched.step()
         resumed.append(optim.param_groups[0]["lr"])
     assert resumed == pytest.approx(lrs[steps:], rel=1e-12, abs=1e-18)
+
+
+def test_orcd_config_name_resolves_to_this_class():
+    # ORCD-trained run configs name the schedule `WarmupCosineAnnealingLR`.
+    assert absolute_import("pylot.optim.scheduler.WarmupCosineAnnealingLR") is WarmupCosineLR

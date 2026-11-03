@@ -49,3 +49,9 @@ class WarmupCosineLR(LRScheduler):
             self.eta_min + (base_lr - self.eta_min) * (1 + math.cos(math.pi * progress)) / 2
             for base_lr in self.base_lrs
         ]
+
+
+# The same schedule under the name the ORCD pylot checkout gave it (2026-10-14). The run configs
+# trained there (e.g. PURE-QUIZ of 2026-10-14_amix-cross-iterative-finetune-192iso) name
+# `pylot.optim.scheduler.WarmupCosineAnnealingLR`, so loading those runs needs it.
+WarmupCosineAnnealingLR = WarmupCosineLR
