@@ -2,8 +2,11 @@ import gzip
 import io
 import sys
 import json
+import os
 import pathlib
 import pickle
+import stat
+import uuid
 import shutil
 from abc import ABC
 from contextlib import contextmanager
@@ -74,6 +77,27 @@ __all__ = [
 
 class FileExtensionError(Exception):
     pass
+
+
+def _replace_atomically(fp: pathlib.Path, text: str) -> None:
+    """
+    Write `text` to `fp` through a temporary file in the same directory, then
+    `os.replace` it into place. A process reading `fp` meanwhile sees the old or
+    the new file, never a truncated one, and two concurrent writers cannot
+    interleave their bytes (pylot's `properties.json` is rewritten by every
+    process that loads an experiment). `fp` keeps its permission bits; a new
+    file gets the umask's, as `open(fp, "w")` would.
+    """
+    tmp = fp.with_name(f".{fp.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
+    try:
+        with tmp.open("x") as f:
+            f.write(text)
+        if fp.exists():
+            os.chmod(tmp, stat.S_IMODE(fp.stat().st_mode))
+        os.replace(tmp, fp)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
 
 
 class FileFormat(ABC):
@@ -183,8 +207,7 @@ class YamlFormat(FileFormat):
     @classmethod
     def save(cls, obj, fp):
         fp = cls.check_fp(fp)
-        with fp.open("w") as f:
-            yaml.safe_dump(obj, f, sort_keys=False)
+        _replace_atomically(fp, yaml.safe_dump(obj, sort_keys=False))
 
     @classmethod
     def load(cls, fp, max_retries=5, retry_delay=0.05) -> object:
@@ -232,8 +255,7 @@ class JsonFormat(FileFormat):
     @classmethod
     def save(cls, obj, fp):
         fp = cls.check_fp(fp)
-        with fp.open("w") as f:
-            json.dump(obj, f, cls=NumpyJSONEncoder)
+        _replace_atomically(fp, json.dumps(obj, cls=NumpyJSONEncoder))
 
     @classmethod
     def load(cls, fp, max_retries=5, retry_delay=0.05) -> object:

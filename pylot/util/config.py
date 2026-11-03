@@ -7,7 +7,7 @@ from typing import Any, Union, Tuple, Dict
 
 import yaml
 
-from .ioutil import autoload, autosave
+from .ioutil import autoencode, autoload, autosave
 from .more_functools import newobj
 
 NormalizedKey = Tuple[Union[str, int], ...]
@@ -621,9 +621,12 @@ class FHDict(HDict):
     @contextmanager
     def _fileop(self, persist=False):
         data = autoload(self._path)
+        before = autoencode(data, self._path.suffix) if persist else None
         self._data = get_nested(data, self._prefix, sep=self._sep)
         yield
-        if persist:
+        # Write only a change: a process that loads an existing experiment re-records the same class,
+        # module and properties, and must not rewrite a file that a training job also writes.
+        if persist and autoencode(data, self._path.suffix) != before:
             autosave(data, self._path)
         delattr(self, "_data")
 
