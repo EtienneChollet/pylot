@@ -317,6 +317,12 @@ class TrainExperiment(BaseExperiment):
             # Apply the loaded state to the model
             self.set_state(state, strict=strict)
 
+            # `set_state` took `_epoch` from the INITIALIZATION checkpoint and
+            # moved the LR schedule there (COOL-BLOB's epoch 500 put a batch-
+            # stepped schedule at step 500k). This run has trained nothing yet.
+            self._epoch = 0
+            self._restore_lr_schedule()
+
             # Log the successful initialization
             logger.info(f"Loaded initialization state from: {path}")
 
